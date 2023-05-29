@@ -10,9 +10,9 @@
     "test": "jest",
     "cdk": "cdk",
     "synth": "cdk synth",
-    "synth-local": "cdklocal synth", 
+    "synth-local": "cdklocal synth",
     "local-stack": "localstack start",
-    "lambda": "sam local invoke -t cdk.out/PrivateVpnDeployStack.template.json --event sqs-event.json"
+    "lambda": "sam local invoke -t cdk.out/PrivateVpnDeployStack.template.json --event sqs-instance-event.json"
   },
   "devDependencies": {
     "@types/jest": "^29.5.1",
