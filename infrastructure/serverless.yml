@@ -1,0 +1,60 @@
+service: serverless-aws-vpn-solution
+frameworkVersion: '3'
+
+custom:
+  sqsPrimaryKey: instanceId
+  vpnStateTableName: vpn-table-${self:provider.stage}
+  dynamodb:
+    stages:
+      - dev
+    start:
+      migrate: true
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: dev
+  region: us-west-1
+  environment:
+    PRIMARY_KEY: ${self:custom.sqsPrimaryKey}
+    DYNAMO_DB_TABLENAME: ${self:custom.vpnStateTableName}
+
+plugins:
+  - serverless-dynamodb-local
+  - serverless-offline
+  - serverless-iam-roles-per-function
+
+functions:
+  syncVpnState:
+    handler: lambda.handler
+    events:
+      - cloudwatchEvent:
+          name: 'vpn-service-cloudwatch-event-on-ec2-instance-state-change'
+          description: 'CloudWatch Event triggered on EC2 Instance pending state'
+          event:
+            source:
+              - 'aws.ec2'
+            detail-type:
+              - 'EC2 Instance State-change Notification'
+
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+          - dynamodb:UpdateItem
+        Resource:
+          - Fn::GetAtt: [VpnTable, Arn]
+
+resources:
+  Resources:
+    VpnTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: ${self:custom.sqsPrimaryKey}
+            AttributeType: S
+        KeySchema:
+          - AttributeName: ${self:custom.sqsPrimaryKey}
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.vpnStateTableName}

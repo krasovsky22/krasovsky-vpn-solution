@@ -1,0 +1,16 @@
+{
+    "version": "0",
+    "id": "2d835ddc-d60e-b75a-2017-12b519046e04",
+    "detail-type": "EC2 Instance State-change Notification",
+    "source": "aws.ec2",
+    "account": "618412715225",
+    "time": "2023-05-30T08:27:04Z",
+    "region": "us-west-1",
+    "resources": [
+        "arn:aws:ec2:us-west-1:618412715225:instance/i-08ac89f026edf5c9d"
+    ],
+    "detail": {
+        "instance-id": "i-08ac89f026edf5c9d",
+        "state": "stopping"
+    }
+}
