@@ -1,0 +1,12 @@
+schema {
+    query: Query
+}
+
+type Query {
+    getVpnInstances: [VpnInstance]
+}
+
+type VpnInstance {
+    instanceId: ID!
+    instanceState: String!
+}

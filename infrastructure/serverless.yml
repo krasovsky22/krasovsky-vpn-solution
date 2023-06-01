@@ -2,7 +2,18 @@ service: serverless-aws-vpn-solution
 frameworkVersion: '3'
 
 custom:
+  awsRegion: us-west-1
   sqsPrimaryKey: instanceId
+
+  cognitoUserPoolName: vpn-user-pool
+  mobileUserPoolClient: vpn-user-pool-client-mobile
+
+  adminIAMRoleName: vpn-admin-group-role
+  customerIAMRoleName: vpn-customer-group-role
+
+  adminIAMRolePolicyName: vpn-admin-group-role-policy
+  customerIAMRolePolicyName: vpn-customer-group-role-policy
+
   vpnStateTableName: vpn-table-${self:provider.stage}
   dynamodb:
     stages:
@@ -10,18 +21,46 @@ custom:
     start:
       migrate: true
 
+appSync:
+  name: vpn-appsync-api-${self:provider.stage}
+  authentication:
+    type: AMAZON_COGNITO_USER_POOLS
+    config:
+      userPoolId: !Ref CognitoUserPool
+
+  resolvers:
+    getVpnInstances:
+      dataSource: VpnTable
+      type: Query
+      field: getVpnInstances
+      functions:
+        - scanVpnTable
+
+  pipelineFunctions:
+    scanVpnTable:
+      dataSource: VpnTable
+      code: resolvers/getVpnInstances.js
+
+  dataSources:
+    VpnTable:
+      type: AMAZON_DYNAMODB
+      config:
+        tableName: !Ref VpnTable
+
+
 provider:
   name: aws
   runtime: nodejs18.x
   stage: dev
-  region: us-west-1
+  region: ${self:custom.awsRegion}
   environment:
     PRIMARY_KEY: ${self:custom.sqsPrimaryKey}
     DYNAMO_DB_TABLENAME: ${self:custom.vpnStateTableName}
 
 plugins:
-  - serverless-dynamodb-local
   - serverless-offline
+  - serverless-dynamodb-local
+  - serverless-appsync-plugin
   - serverless-iam-roles-per-function
 
 functions:
@@ -58,3 +97,89 @@ resources:
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
         TableName: ${self:custom.vpnStateTableName}
+
+    CognitoUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: ${self:custom.cognitoUserPoolName}
+        UsernameAttributes:
+          - 'email'
+
+    CognitoUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: ${self:custom.mobileUserPoolClient}
+        UserPoolId: !Ref CognitoUserPool
+
+    # User Pool Groups
+
+    CognitoAdminGroup:
+      Type: AWS::Cognito::UserPoolGroup
+      Properties:
+        Description: 'Admin users belongs to this group'
+        GroupName: 'Admin'
+        Precedence: 0
+        RoleArn:
+          Fn::GetAtt: [CognitoAdminIAMRole, Arn]
+        UserPoolId: !Ref CognitoUserPool
+
+    CognitoCustomerGroup:
+      Type: AWS::Cognito::UserPoolGroup
+      Properties:
+        Description: 'Cusomer users belongs to this group'
+        GroupName: 'Customer'
+        Precedence: 1
+        RoleArn:
+          Fn::GetAtt: [CognitoUserIAMRole, Arn]
+        UserPoolId: !Ref CognitoUserPool
+
+    # IAM Roles
+    CognitoAdminIAMRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:custom.adminIAMRoleName}
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            Effect: Allow
+            Principal:
+              Federated:
+                - 'cognito-identity-amazonaws.com'
+            Action:
+              - 'sts:AssumeRoleWithWebIdentity'
+        Description: 'VPN Admin Group Policy'
+        Policies:
+          - PolicyName: ${self:custom.adminIAMRolePolicyName}
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 'dynamodb:*'
+                  Resource:
+                    Fn::GetAtt: [VpnTable, Arn]
+
+    CognitoUserIAMRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:custom.customerIAMRoleName}
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            Effect: Allow
+            Principal:
+              Federated:
+                - 'cognito-identity-amazonaws.com'
+            Action:
+              - 'sts:AssumeRoleWithWebIdentity'
+        Description: 'VPN Customer Group Policy'
+        Policies:
+          - PolicyName: ${self:custom.customerIAMRolePolicyName}
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 'dynamodb:*'
+                  Resource:
+                    Fn::GetAtt: [VpnTable, Arn]
