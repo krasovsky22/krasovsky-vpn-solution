@@ -4,8 +4,6 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 module.exports = ({ config }) => {
-  console.log('CONFIG', config.extra.aws); // prints 'My App'
-
   Object.assign(config.extra.aws, {
     cognito_region: process.env.AWS_COGNITO_REGION,
     cognito_userPoolId: process.env.AWS_COGNITO_USER_POOL_ID,
