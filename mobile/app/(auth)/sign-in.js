@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { Slot, Stack, Tabs } from 'expo-router';
 
 import {
   StyleSheet,
@@ -40,6 +41,7 @@ export default function SignIn() {
 
   return (
     <View style={styles.wrapper}>
+      <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
         <Image
           alt="logo"
@@ -84,19 +86,15 @@ export default function SignIn() {
 
 const styles = StyleSheet.create({
   wrapper: {
-    height: '30%',
-    width: '100%',
+    flex: 1,
   },
   container: {
     flex: 1,
-    height: '40%',
-    width: '100%',
     backgroundColor: '#fff',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
+    gap: '20px',
   },
   image: {
     // height: '10pt',

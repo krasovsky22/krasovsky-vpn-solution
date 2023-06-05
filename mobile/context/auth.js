@@ -5,8 +5,7 @@ import {
   SplashScreen,
 } from 'expo-router';
 import React from 'react';
-import { Hub } from '@aws-amplify/core';
-import { Auth } from '@aws-amplify/auth';
+import { Auth, Hub } from 'aws-amplify';
 
 const AuthContext = React.createContext(null);
 

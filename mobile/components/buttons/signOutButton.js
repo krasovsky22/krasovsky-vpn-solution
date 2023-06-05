@@ -3,9 +3,13 @@ import { useAuth } from '@context/auth';
 
 const SignOutButton = () => {
   const { user, signOut } = useAuth();
+  if (!user) {
+    return null;
+  }
+
   return (
     <Pressable onPress={signOut}>
-      <Text>Hello, {user?.attributes?.email}! Click here to sign out!</Text>
+      <Text>Sign Out</Text>
     </Pressable>
   );
 };

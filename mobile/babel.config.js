@@ -11,6 +11,7 @@ module.exports = function(api) {
             '@lib': '/lib',
             '@assets': './assets',
             '@context': './context',
+            '@graphql': './graphql',
             '@components': './components',
           },
           extensions: ['.js', '.jsx', '.ts', '.tsx'],

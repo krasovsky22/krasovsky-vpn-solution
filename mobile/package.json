@@ -1,5 +1,5 @@
 {
-  "name": "mobile-aws-vpn-connector",
+  "name": "mobile-aws-vpn-connector-separate",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -9,7 +9,6 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "@aws-amplify/ui-react-native": "^1.2.18",
     "@react-native-async-storage/async-storage": "1.17.11",
     "@react-native-community/netinfo": "9.3.7",
     "@react-native-picker/picker": "2.4.8",
