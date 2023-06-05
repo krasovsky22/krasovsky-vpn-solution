@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mobile-aws-vpn-connector-test",
-    "slug": "mobile-aws-vpn-connector-test",
+    "name": "mobile-aws-vpn-connector",
+    "slug": "mobile-aws-vpn-connector",
     "scheme": "myapp",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -26,10 +26,25 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
+      "aws": {
+        "cognito_region": "",
+        "cognito_userPoolId": "",
+        "cognito_userPoolWebClientId": "",
+        "cognito_mandatorySignIn": true,
+        "appsync_graphqlEndpoint": "",
+        "appsync_region": "",
+        "appsync_authenticationType": ""
+      },
       "eas": {
         "projectId": "9a761278-4e88-4845-b96f-390bf4f3f55d"
       }
     },
-    "owner": "krasovsky"
+    "owner": "krasovsky",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/9a761278-4e88-4845-b96f-390bf4f3f55d"
+    }
   }
 }

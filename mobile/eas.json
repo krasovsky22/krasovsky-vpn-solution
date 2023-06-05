@@ -1,0 +1,9 @@
+{
+  "build": {
+    "development": {
+      "env": {
+        "AWSAPP_SYNC_GRAPHQL_ENDPOINT": "https://wivoe67bdrf7lggo6kgtifa5pi.appsync-api.us-west-1.amazonaws.com/graphql"
+      }
+    }
+  }
+}

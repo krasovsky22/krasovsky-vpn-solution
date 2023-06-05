@@ -1,23 +1,19 @@
 import { Amplify, API } from 'aws-amplify';
+import Constants from 'expo-constants';
 
-const config = {
+const expoAwsVariables = Constants.expoConfig?.extra?.aws ?? {};
+const awsConfig = {
   Auth: {
-    region: 'us-west-1',
-    userPoolId: 'us-west-1_zg57HrWSW',
-    userPoolWebClientId: '4vidoj2s796559rttvt7bc083d',
-    mandatorySignIn: true,
+    region: expoAwsVariables?.cognito_region ?? '',
+    userPoolId: expoAwsVariables?.cognito_userPoolId ?? '',
+    mandatorySignIn: expoAwsVariables?.cognito_mandatorySignIn ?? true,
+    userPoolWebClientId: expoAwsVariables?.cognito_userPoolWebClientId ?? '',
   },
+  aws_appsync_region: expoAwsVariables?.appsync_region ?? '',
+  aws_appsync_graphqlEndpoint: expoAwsVariables?.appsync_graphqlEndpoint ?? '',
+  aws_appsync_authenticationType:
+    expoAwsVariables?.appsync_authenticationType ?? '',
 };
-
-Amplify.configure(config);
-
-const appSyncConfig = {
-  aws_appsync_graphqlEndpoint:
-    'https://wivoe67bdrf7lggo6kgtifa5pi.appsync-api.us-west-1.amazonaws.com/graphql',
-  aws_appsync_region: 'us-west-1',
-  aws_appsync_authenticationType: 'AMAZON_COGNITO_USER_POOLS',
-};
-
-Amplify.configure(appSyncConfig);
+Amplify.configure(awsConfig);
 
 import 'expo-router/entry';
