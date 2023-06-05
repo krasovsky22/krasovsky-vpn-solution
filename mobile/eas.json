@@ -1,9 +1,18 @@
 {
+  "cli": {
+    "version": ">= 3.13.2"
+  },
   "build": {
     "development": {
-      "env": {
-        "AWSAPP_SYNC_GRAPHQL_ENDPOINT": "https://wivoe67bdrf7lggo6kgtifa5pi.appsync-api.us-west-1.amazonaws.com/graphql"
-      }
-    }
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {}
+  },
+  "submit": {
+    "production": {}
   }
 }

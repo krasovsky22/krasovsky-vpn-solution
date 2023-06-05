@@ -1,12 +1,29 @@
-schema {
-    query: Query
+type Mutation {
+  createOrUpdateVpnInstance(vpnStateDetails: VpnInstanceInput!): VpnInstance!
+    @aws_iam
 }
 
 type Query {
-    getVpnInstances: [VpnInstance]
+  getVpnInstances: [VpnInstance]
 }
 
-type VpnInstance {
-    instanceId: ID!
-    instanceState: String!
+type Subscription {
+  vpnInstanceUpdated: VpnInstance
+    @aws_subscribe(mutations: ["createOrUpdateVpnInstance"])
+}
+
+type VpnInstance @aws_iam @aws_cognito_user_pools {
+  instanceId: ID!
+  instanceState: String!
+}
+
+input VpnInstanceInput {
+  instanceId: String!
+  instanceState: String!
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
 }

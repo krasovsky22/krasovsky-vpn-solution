@@ -11,7 +11,8 @@ import {
 import { Stack } from 'expo-router';
 
 import { API, graphqlOperation } from 'aws-amplify';
-import { getVpnInstances } from '@graphql/queries/instances';
+import { getVpnInstances } from '@graphql/queries/vpnInstances';
+import { vpnInstanceUpdated } from '@graphql/subscriptions/vpnInstances';
 
 const loadVpnInstances = async () => {
   const { data } = await API.graphql(graphqlOperation(getVpnInstances));
@@ -20,15 +21,35 @@ const loadVpnInstances = async () => {
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
-  const [vpnInstances, setVpnInstances] = useState([]);
+  const [vpnInstances, setVpnInstances] = useState(new Map());
   useEffect(() => {
+    const updateOrAddVpnInstance = (vpnInstance) => {
+      const { instanceId, ...rest } = vpnInstance;
+      setVpnInstances(
+        (previousMap) => new Map(previousMap.set(instanceId, { ...rest }))
+      );
+    };
+
+    // load initial instances
     loadVpnInstances()
       .then((instances) => {
-        setVpnInstances(instances);
+        instances.forEach((instance) => updateOrAddVpnInstance(instance));
       })
       .finally(() => {
         setIsLoading(false);
       });
+
+    const sub = API.graphql(graphqlOperation(vpnInstanceUpdated)).subscribe({
+      next: ({ value }) => {
+        const updatedVpnInstance = value.data.vpnInstanceUpdated;
+        console.log('aaaa', updatedVpnInstance);
+        updateOrAddVpnInstance(updatedVpnInstance);
+      },
+      error: (error) => console.warn(JSON.stringify(error)),
+    });
+
+    // Stop receiving data updates from the subscription
+    return () => sub.unsubscribe();
   }, []);
 
   if (isLoading) {
@@ -39,18 +60,20 @@ export default function App() {
     );
   }
 
+  console.log(vpnInstances);
+
   return (
     <View style={styles.pageContainer}>
       <Stack.Screen options={{ title: 'VPN Instances' }} />
       <SafeAreaView style={styles.container}>
         <FlatList
-          data={vpnInstances}
-          keyExtractor={(item) => item.instanceId}
-          renderItem={({ item }) => {
+          data={[...vpnInstances.keys()]}
+          renderItem={({ item: instanceId }) => {
+            const { instanceState } = vpnInstances.get(instanceId);
             return (
               <View style={styles.item}>
                 <Text style={styles.title}>
-                  {item.instanceId} - {item.instanceState}
+                  {instanceId} - {instanceState}
                 </Text>
               </View>
             );

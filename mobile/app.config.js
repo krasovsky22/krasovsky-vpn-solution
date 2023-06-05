@@ -15,6 +15,7 @@ module.exports = ({ config }) => {
     appsync_region: process.env.AWSAPP_SYNC_REGION,
     appsync_authenticationType: process.env.AWSAPP_SYNC_AUTHENTICAION_TYPE,
   });
+
   return {
     ...config,
   };

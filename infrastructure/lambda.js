@@ -1,14 +1,22 @@
 /* eslint-disable turbo/no-undeclared-env-vars */
-const { marshall } = require('@aws-sdk/util-dynamodb');
-const {
-  PutItemCommand,
-  UpdateItemCommand,
-} = require('@aws-sdk/client-dynamodb');
+const fetch = require('node-fetch');
+const crypto = require('@aws-crypto/sha256-js');
+const { defaultProvider } = require('@aws-sdk/credential-provider-node');
+const { SignatureV4 } = require('@aws-sdk/signature-v4');
+const { HttpRequest } = require('@aws-sdk/protocol-http');
 
-const db = require('./db');
+const { Sha256 } = crypto;
+const AWS_REGION = process.env.GRAPHQL_AWS_REGION;
+const GRAPHQL_ENDPOINT = process.env.GRAPHQL_ENDPOINT;
 
-const TABLE_NAME = process.env.DYNAMO_DB_TABLENAME || '';
-const PRIMARY_KEY = process.env.PRIMARY_KEY || '';
+const query = /* GraphQL */ `
+  mutation createOrUpdateVpnInstance($vpnStateDetails: VpnInstanceInput!) {
+    createOrUpdateVpnInstance(vpnStateDetails: $vpnStateDetails) {
+      instanceId
+      instanceState
+    }
+  }
+`;
 
 const handler = async (event) => {
   const { time: eventTime } = event;
@@ -25,44 +33,60 @@ const handler = async (event) => {
     return { statusCode: 400, body: 'invalid request. State is not passed.' };
   }
 
-  const params = {
-    TableName: TABLE_NAME,
-    Item: marshall({
-      [PRIMARY_KEY]: 'ec2Instance#' + instanceId,
-      instanceState: instanceState,
-      updatedAt: eventTime,
-    }),
-    ConditionExpression: `attribute_not_exists(${PRIMARY_KEY})`,
-    ReturnValues: 'NONE',
+  const variables = {
+    vpnStateDetails: {
+      instanceId,
+      instanceState,
+    },
   };
 
+  //taken from https://docs.amplify.aws/guides/functions/graphql-from-lambda/q/platform/js/#iam-authorization
+  const endpoint = new URL(GRAPHQL_ENDPOINT);
+
+  const signer = new SignatureV4({
+    credentials: defaultProvider(),
+    region: AWS_REGION,
+    service: 'appsync',
+    sha256: Sha256,
+  });
+
+  const requestToBeSigned = new HttpRequest({
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      host: endpoint.host,
+    },
+    hostname: endpoint.host,
+    body: JSON.stringify({ query, variables }),
+    path: endpoint.pathname,
+  });
+
+  const signed = await signer.sign(requestToBeSigned);
+  const request = new fetch.Request(GRAPHQL_ENDPOINT, signed);
+
+  let statusCode = 200;
+  let body;
+  let response;
+
   try {
-    const putResponse = await db.send(new PutItemCommand(params));
-    return { statusCode: 204, body: putResponse };
-  } catch (dbError) {
-    if (dbError.name !== 'ConditionalCheckFailedException') {
-      return { statusCode: 500, body: dbError };
-    }
+    response = await fetch(request);
+    body = await response.json();
+    if (body.errors) statusCode = 400;
+  } catch (error) {
+    statusCode = 500;
+    body = {
+      errors: [
+        {
+          message: error.message,
+        },
+      ],
+    };
   }
 
-  const updateParams = {
-    TableName: TABLE_NAME, // Replace with your DynamoDB table name
-    Key: marshall({ [PRIMARY_KEY]: 'ec2Instance#' + instanceId }), // Key of the existing record to update
-    UpdateExpression:
-      'SET instanceState = :instanceState, updatedAt = :updatedAt', // Update the desired attributes
-    ExpressionAttributeValues: marshall({
-      ':instanceState': instanceState, // Replace with the updated values
-      ':updatedAt': eventTime,
-    }),
-    ReturnValues: 'ALL_NEW', // Return the updated attributes
+  return {
+    statusCode,
+    body: JSON.stringify(body),
   };
-
-  try {
-    const updateResponse = await db.send(new UpdateItemCommand(updateParams));
-    return { statusCode: 204, body: updateResponse };
-  } catch (dbError) {
-    return { statusCode: 500, body: dbError };
-  }
 };
 
 module.exports = {

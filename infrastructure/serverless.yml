@@ -4,6 +4,7 @@ frameworkVersion: '3'
 custom:
   awsRegion: us-west-1
   sqsPrimaryKey: instanceId
+  lambdaFunctionName: serverless-aws-vpn-solution-dev-syncVpnState
 
   cognitoUserPoolName: vpn-user-pool
   mobileUserPoolClient: vpn-user-pool-client-mobile
@@ -15,6 +16,8 @@ custom:
   customerIAMRolePolicyName: vpn-customer-group-role-policy
 
   vpnStateTableName: vpn-table-${self:provider.stage}
+  awsSyncGraphqlEndpoint: !GetAtt GraphQlApi.GraphQLUrl
+
   dynamodb:
     stages:
       - dev
@@ -27,6 +30,8 @@ appSync:
     type: AMAZON_COGNITO_USER_POOLS
     config:
       userPoolId: !Ref CognitoUserPool
+  additionalAuthentications:
+    - type: AWS_IAM
 
   resolvers:
     getVpnInstances:
@@ -35,11 +40,21 @@ appSync:
       field: getVpnInstances
       functions:
         - scanVpnTable
+    createOrUpdateVpnInstance:
+      dataSource: VpnTable
+      type: Mutation
+      field: createOrUpdateVpnInstance
+      functions:
+        - putVpnInstance
 
   pipelineFunctions:
     scanVpnTable:
       dataSource: VpnTable
       code: resolvers/getVpnInstances.js
+
+    putVpnInstance:
+      dataSource: VpnTable
+      code: resolvers/putVpnInstance.js
 
   dataSources:
     VpnTable:
@@ -47,24 +62,25 @@ appSync:
       config:
         tableName: !Ref VpnTable
 
-
 provider:
   name: aws
   runtime: nodejs18.x
   stage: dev
   region: ${self:custom.awsRegion}
   environment:
-    PRIMARY_KEY: ${self:custom.sqsPrimaryKey}
-    DYNAMO_DB_TABLENAME: ${self:custom.vpnStateTableName}
+    GRAPHQL_AWS_REGION: ${self:custom.awsRegion}
+    GRAPHQL_ENDPOINT: !GetAtt GraphQlApi.GraphQLUrl
 
 plugins:
   - serverless-offline
-  - serverless-dynamodb-local
+  - serverless-export-env
   - serverless-appsync-plugin
+  - serverless-dynamodb-local
   - serverless-iam-roles-per-function
 
 functions:
   syncVpnState:
+    name: ${self:custom.lambdaFunctionName}
     handler: lambda.handler
     events:
       - cloudwatchEvent:
@@ -79,10 +95,18 @@ functions:
     iamRoleStatements:
       - Effect: Allow
         Action:
-          - dynamodb:PutItem
-          - dynamodb:UpdateItem
+          - appsync:GraphQL
         Resource:
-          - Fn::GetAtt: [VpnTable, Arn]
+          - {
+              Fn::Join:
+                [
+                  '',
+                  [
+                    { Ref: GraphQlApi },
+                    '/types/Mutation/fields/createOrUpdateVpnInstance',
+                  ],
+                ],
+            }
 
 resources:
   Resources:
@@ -183,3 +207,33 @@ resources:
                     - 'dynamodb:*'
                   Resource:
                     Fn::GetAtt: [VpnTable, Arn]
+
+  Outputs:
+    AwsAppSyncRegion:
+      Description: 'AppSync Region'
+      Value: !GetAtt VpnTable.userPoolAwsRegion
+    AwsAppSyncAuthenticationType:
+      Description: 'AppSync Primary Authentication Type'
+      Value: AMAZON_COGNITO_USER_POOLS
+    AwsAppSyncRealTimeGraphqlEndpoint:
+      Description: 'AppSync Graphql Endpoint'
+      Value: !GetAtt GraphQlApi.GraphQLUrl
+    AwsAppSyncGraphqlEndpoint:
+      Description: 'AppSync Graphql Reacltime Endpoint'
+      Value: !GetAtt GraphQlApi.RealtimeUrl
+
+    AwsCognitoRegion:
+      Description: 'Cognito Region'
+      Value: ${self:custom.awsRegion}
+
+    AwsCognitoUserPoolId:
+      Description: 'Cognito User Pool Id'
+      Value: !Ref CognitoUserPool
+
+    AwsCognitoUserPoolWebClientId:
+      Description: 'Cognito Web Client Id'
+      Value: !Ref CognitoUserPoolClient
+
+    AwsCognitoMandatorySignIn:
+      Description: 'Cognito Mandatory Sign In'
+      Value: true
