@@ -42,7 +42,6 @@ export default function App() {
     const sub = API.graphql(graphqlOperation(vpnInstanceUpdated)).subscribe({
       next: ({ value }) => {
         const updatedVpnInstance = value.data.vpnInstanceUpdated;
-        console.log('aaaa', updatedVpnInstance);
         updateOrAddVpnInstance(updatedVpnInstance);
       },
       error: (error) => console.warn(JSON.stringify(error)),
@@ -59,8 +58,6 @@ export default function App() {
       </View>
     );
   }
-
-  console.log(vpnInstances);
 
   return (
     <View style={styles.pageContainer}>
