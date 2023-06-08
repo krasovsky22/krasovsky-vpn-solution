@@ -4,10 +4,13 @@ frameworkVersion: '3'
 custom:
   awsRegion: us-west-1
   sqsPrimaryKey: instanceId
-  lambdaFunctionName: serverless-aws-vpn-solution-dev-syncVpnState
+  vpnStatelambdaFunctionName: syncVpnState
+  startAndStopVpnInstanceLambdaFunctionName: startAndStopVpnInstance
 
   cognitoUserPoolName: vpn-user-pool
   mobileUserPoolClient: vpn-user-pool-client-mobile
+
+  appSyncLambdaRole: app-sync-execute-lambda
 
   adminIAMRoleName: vpn-admin-group-role
   customerIAMRoleName: vpn-customer-group-role
@@ -46,6 +49,18 @@ appSync:
       field: createOrUpdateVpnInstance
       functions:
         - putVpnInstance
+    startVpnInstance:
+      dataSource: AwsLambda
+      type: Mutation
+      field: startVpnInstance
+      functions:
+        - startOrStopVpnInstance
+    stopVpnInstance:
+      dataSource: AwsLambda
+      type: Mutation
+      field: stopVpnInstance
+      functions:
+        - startOrStopVpnInstance
 
   pipelineFunctions:
     scanVpnTable:
@@ -56,11 +71,20 @@ appSync:
       dataSource: VpnTable
       code: resolvers/putVpnInstance.js
 
+    startOrStopVpnInstance:
+      dataSource: AwsLambda
+      code: resolvers/startOrStopVpnInstance.js
+
   dataSources:
     VpnTable:
       type: AMAZON_DYNAMODB
       config:
         tableName: !Ref VpnTable
+    AwsLambda:
+      type: AWS_LAMBDA
+      config:
+        functionArn: { Fn::GetAtt: [StartAndStopVpnInstanceLambdaFunction, Arn] }
+        serviceRoleArn: { Fn::GetAtt: [AppSyncExecuteLambdaRole, Arn] }
 
 provider:
   name: aws
@@ -80,8 +104,8 @@ plugins:
 
 functions:
   syncVpnState:
-    name: ${self:custom.lambdaFunctionName}
-    handler: lambda.handler
+    name: ${self:custom.vpnStatelambdaFunctionName}
+    handler: syncVpnStateLambda.handler
     events:
       - cloudwatchEvent:
           name: 'vpn-service-cloudwatch-event-on-ec2-instance-state-change'
@@ -91,7 +115,6 @@ functions:
               - 'aws.ec2'
             detail-type:
               - 'EC2 Instance State-change Notification'
-
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -107,6 +130,18 @@ functions:
                   ],
                 ],
             }
+
+  startAndStopVpnInstance:
+    name: ${self:custom.startAndStopVpnInstanceLambdaFunctionName}
+    handler: startAndStopVpnInstanceLambda.handler
+    iamRoleStatementsName: 'lambda-start-stop-ec2'
+    iamRoleStatements:
+      - Effect: Allow
+        Resource:
+          - !Sub 'arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*'
+        Action:
+          - 'ec2:Start*'
+          - 'ec2:Stop*'
 
 resources:
   Resources:
@@ -183,6 +218,32 @@ resources:
                   Resource:
                     Fn::GetAtt: [VpnTable, Arn]
 
+    AppSyncExecuteLambdaRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:custom.appSyncLambdaRole}
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            Effect: Allow
+            Principal:
+              Service:
+                - 'appsync.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+        Description: 'App Sync Policy to execute lambda'
+        Policies:
+          - PolicyName: awssync-invoke-lambda-policy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 'lambda:InvokeFunction'
+                    - 'lambda:InvokeAsync'
+                  Resource:
+                    - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${self:custom.startAndStopVpnInstanceLambdaFunctionName}'
+
     CognitoUserIAMRole:
       Type: AWS::IAM::Role
       Properties:
@@ -211,7 +272,7 @@ resources:
   Outputs:
     AwsAppSyncRegion:
       Description: 'AppSync Region'
-      Value: !GetAtt VpnTable.userPoolAwsRegion
+      Value: ${self:custom.awsRegion}
     AwsAppSyncAuthenticationType:
       Description: 'AppSync Primary Authentication Type'
       Value: AMAZON_COGNITO_USER_POOLS

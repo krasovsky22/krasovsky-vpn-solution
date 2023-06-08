@@ -4,6 +4,7 @@
   "description": "will create infrastructure on aws",
   "devDependencies": {
     "@aws-sdk/client-dynamodb": "^3.341.0",
+    "@aws-sdk/client-ec2": "^3.347.1",
     "@aws-sdk/util-dynamodb": "^3.341.0",
     "serverless": "^3.32.0",
     "serverless-appsync-plugin": "^2.2.1",

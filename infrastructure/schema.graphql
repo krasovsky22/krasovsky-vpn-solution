@@ -1,6 +1,8 @@
 type Mutation {
   createOrUpdateVpnInstance(vpnStateDetails: VpnInstanceInput!): VpnInstance!
     @aws_iam
+  startVpnInstance(instanceId: ID!): Boolean @aws_cognito_user_pools
+  stopVpnInstance(instanceId: ID!): Boolean @aws_cognito_user_pools
 }
 
 type Query {
