@@ -83,6 +83,8 @@ export default Footer;
 
 const styles = StyleSheet.create({
   footer: {
+    borderTopWidth: 1,
+    borderTopColor: 'gray',
     height: '10%',
     alignItems: 'center',
     justifyContent: 'center',
