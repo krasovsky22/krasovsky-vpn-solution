@@ -1,11 +1,17 @@
-import { Link } from 'expo-router';
-import { SafeAreaView, StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { SafeAreaView, StyleSheet } from 'react-native';
 
 import { useAuth } from '@context/auth';
-import { SignOutButton } from '@components/buttons';
+import { Button } from '@rneui/themed';
+import { useCallback } from 'react';
 
 const Footer = () => {
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, signOut } = useAuth();
+
+  const handleRedirect = useCallback((route) => {
+    router.replace(route);
+  }, []);
 
   if (!user) {
     return null;
@@ -13,10 +19,62 @@ const Footer = () => {
 
   return (
     <SafeAreaView style={styles.footer}>
-      <SignOutButton />
-      <View style={styles.textContainer}>
-        <Link href="/vpn">VPN</Link>
-      </View>
+      <Button
+        onPress={() => handleRedirect('/')}
+        title="Home"
+        icon={{
+          type: 'MaterialCommunityIcons',
+          name: 'home',
+          color: 'white',
+          size: 20,
+        }}
+        buttonStyle={{
+          borderColor: 'transparent',
+          backgroundColor: '#40c72b',
+        }}
+        containerStyle={{
+          marginHorizontal: 50,
+          marginVertical: 10,
+          paddingRight: 10,
+        }}
+      />
+      <Button
+        onPress={() => handleRedirect('/vpn')}
+        title="VPN"
+        icon={{
+          type: 'MaterialIcons',
+          name: 'vpn-lock',
+          color: 'white',
+          size: 20,
+        }}
+        buttonStyle={{
+          borderColor: 'transparent',
+          backgroundColor: 'rgba(199, 43, 98, 1)',
+        }}
+        containerStyle={{
+          marginHorizontal: 50,
+          marginVertical: 10,
+          paddingRight: 10,
+        }}
+      />
+      <Button
+        onPress={signOut}
+        title="Sign Out"
+        icon={{
+          type: 'MaterialCommunityIcons',
+          name: 'exit-to-app',
+          color: 'white',
+          size: 20,
+        }}
+        buttonStyle={{
+          backgroundColor: 'black',
+        }}
+        containerStyle={{
+          borderWidth: 0,
+          marginVertical: 10,
+          marginHorizontal: 50,
+        }}
+      />
     </SafeAreaView>
   );
 };

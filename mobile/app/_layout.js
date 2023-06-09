@@ -1,5 +1,5 @@
 import { Provider } from '@context/auth';
-import { Link, Stack } from 'expo-router';
+import { Link, Stack, Slot } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StyleSheet, View, SafeAreaView, StatusBar, Text } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
@@ -18,7 +18,7 @@ export default function Root() {
         <Provider>
           <ProtectedRoute>
             <View style={styles.content}>
-              <Stack initialRouteName="index" />
+              <Slot />
               <Footer />
             </View>
           </ProtectedRoute>
@@ -30,6 +30,7 @@ export default function Root() {
 
 const styles = StyleSheet.create({
   content: {
+    marginTop: StatusBar.currentHeight || 0,
     flex: 1,
   },
 });
