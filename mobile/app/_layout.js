@@ -1,39 +1,35 @@
-import { Link, Stack } from 'expo-router';
 import { Provider } from '@context/auth';
+import { Link, Stack } from 'expo-router';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StyleSheet, View, SafeAreaView, StatusBar, Text } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 
-import { SignOutButton } from '@components/buttons';
+import ProtectedRoute from '@components/protectedRoute';
+import Footer from '@components/Footer';
 
 // Prevent hiding the splash screen
 SplashScreen.preventAutoHideAsync();
 
 export default function Root() {
   return (
-    <Provider>
-      <Stack initialRouteName="index" />
-      <StatusBar backgroundColor="#61dafb" />
-      <SafeAreaView style={styles.footer}>
-        <SignOutButton />
-        <View style={styles.textContainer}>
-          <Link href="/home">Home</Link>
-        </View>
-      </SafeAreaView>
-    </Provider>
+    <SafeAreaProvider>
+      <View style={{ flex: 1 }}>
+        <StatusBar backgroundColor="#61dafb" />
+        <Provider>
+          <ProtectedRoute>
+            <View style={styles.content}>
+              <Stack initialRouteName="index" />
+              <Footer />
+            </View>
+          </ProtectedRoute>
+        </Provider>
+      </View>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
   content: {
-    flex: 20,
-  },
-  footer: {
-    flexDirection: 'row',
-    width: '100%',
-    justifyContent: 'space-evenly',
+    flex: 1,
   },
 });

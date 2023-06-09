@@ -1,12 +1,13 @@
 import { useState, useCallback } from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { Slot, Stack, Tabs } from 'expo-router';
+import { Stack } from 'expo-router';
+
+import { Input, Button } from '@rneui/themed';
 
 import {
   StyleSheet,
   Text,
-  Image,
   View,
+  Image,
   TextInput,
   TouchableOpacity,
 } from 'react-native';
@@ -40,45 +41,53 @@ export default function SignIn() {
   }
 
   return (
-    <View style={styles.wrapper}>
+    <View style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.container}>
+
+      <View style={styles.imageContainer}>
         <Image
           alt="logo"
           style={styles.image}
           source={require('@assets/logo.png')}
         />
+      </View>
 
-        <StatusBar style="auto" />
+      <View style={styles.inputContent}>
         <View style={styles.inputView}>
-          <TextInput
+          <Input
             autoFocus
             keyboardType="email-address"
             textContentType="emailAddress"
-            autoCapitalize="none"
             style={styles.TextInput}
             placeholder="Email."
             placeholderTextColor="#003f5c"
+            autoCapitalize="none"
             onChangeText={(email) => setEmail(email)}
+            leftIcon={{ type: 'fontisto', name: 'email' }}
           />
         </View>
         <View style={styles.inputView}>
-          <TextInput
+          <Input
             autoCapitalize="none"
             style={styles.TextInput}
             textContentType="password"
             placeholder="Password."
             placeholderTextColor="#003f5c"
             secureTextEntry={true}
+            leftIcon={{ type: 'fontisto', name: 'unlocked' }}
             onChangeText={(password) => setPassword(password)}
           />
         </View>
         <View>
           <Text>{error}</Text>
         </View>
-        <TouchableOpacity style={styles.loginBtn} onPress={submitLogin}>
-          <Text style={styles.loginText}>LOGIN</Text>
-        </TouchableOpacity>
+      </View>
+      <View style={styles.loginBtnContainer}>
+        <Button
+          onPress={submitLogin}
+          title="Sign In"
+          containerStyle={styles.loginBtn}
+        />
       </View>
     </View>
   );
@@ -89,36 +98,52 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   container: {
-    flex: 1,
-    backgroundColor: '#fff',
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    display: 'flex',
-    gap: '20px',
+    gap: '30px',
+  },
+
+  // IMAGE
+  imageContainer: {
+    flex: 2,
+    width: '70%',
+    alignItems: 'center',
   },
   image: {
-    // height: '10pt',
-    // width: '100%',
+    height: '50%',
+    width: '100%',
+    resizeMode: 'contain',
+    marginTop: 'auto',
+  },
+
+  // INPUTS
+
+  inputContent: {
+    flex: 1,
+    gap: '20px',
+    width: '90%',
   },
   inputView: {
-    backgroundColor: '#FFC0CB',
-    borderRadius: 30,
-    width: '70%',
+    // backgroundColor: '#FFC0CB',
+    // borderRadius: 30,
+    width: '100%',
     height: 45,
-    alignItems: 'center',
   },
   TextInput: {
     height: 50,
     flex: 1,
-    padding: 10,
-    marginLeft: 20,
+    marginLeft: '10%',
+  },
+
+  //   LOGIN BUTTON
+  loginBtnContainer: {
+    flex: 1,
+    width: '80%',
   },
   loginBtn: {
-    width: '80%',
+    marginBottom: 'auto',
+    width: '100%',
     borderRadius: 25,
-    height: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FF1493',
   },
 });

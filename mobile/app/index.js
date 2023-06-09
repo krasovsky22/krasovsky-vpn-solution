@@ -95,7 +95,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 3,
-    backgroundColor: 'red',
     justifyContent: 'flex-end',
   },
   item: {
