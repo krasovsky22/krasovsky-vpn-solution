@@ -1,40 +1,64 @@
-import {
-  useRouter,
-  useSegments,
-  useRootNavigationState,
-  SplashScreen,
-} from 'expo-router';
+import { useRouter, useSegments, useRootNavigationState } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
+import { useSelector, useDispatch } from 'react-redux';
 import React from 'react';
-import { useAuth } from '@context/auth';
+import useCurrentUser from '@hooks/useCurrentUser';
+import {
+  fetchCurrentUser,
+  unsubscribeToUserEvents,
+} from '@stores/actions/auth';
 
-const ProtectedRoute = ({ children, ...rest }) => {
-  const { user } = useAuth();
+const ProtectedRoute = ({ children }) => {
+  const dispatch = useDispatch();
+  const currentUser = useCurrentUser();
+  const { isInitialized } = useSelector((state) => state.auth);
+
   const router = useRouter();
   const segments = useSegments();
+  const navigation = useNavigation();
   const navigationState = useRootNavigationState();
 
   const inAuthGroup = segments[0] === '(auth)';
 
   React.useEffect(() => {
+    dispatch(fetchCurrentUser);
+
+    return () => unsubscribeToUserEvents();
+  }, []);
+
+  React.useEffect(() => {
     if (!navigationState?.key) {
-      // Temporary fix for router not being ready.
       return;
     }
 
-    if (
-      // If the user is not signed in and the initial segment is not anything in the auth group.
-      !user &&
-      !inAuthGroup
-    ) {
+    if (!router) {
+      return;
+    }
+
+    if (!isInitialized) {
+      return;
+    }
+
+    if (!navigation.isReady()) {
+      return;
+    }
+    if (!currentUser && !inAuthGroup) {
       // Redirect to the sign-in page.
       router.replace('/sign-in');
     }
 
-    if (user && inAuthGroup) {
+    if (currentUser && inAuthGroup) {
       // Redirect away from the sign-in page.
       router.replace('/');
     }
-  }, [user, navigationState?.key, inAuthGroup, router]);
+  }, [
+    navigationState?.key,
+    currentUser,
+    inAuthGroup,
+    isInitialized,
+    router,
+    navigation,
+  ]);
 
   return children;
 };

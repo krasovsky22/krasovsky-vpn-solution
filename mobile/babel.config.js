@@ -9,6 +9,9 @@ module.exports = function(api) {
         {
           alias: {
             '@lib': '/lib',
+            '@api': './api',
+            '@hooks': './hooks',
+            '@stores': './stores',
             '@assets': './assets',
             '@context': './context',
             '@graphql': './graphql',

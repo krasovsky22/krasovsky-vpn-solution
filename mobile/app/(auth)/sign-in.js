@@ -1,25 +1,15 @@
-import { useState, useCallback } from 'react';
 import { Stack } from 'expo-router';
-
 import { Input, Button } from '@rneui/themed';
+import { useState, useCallback } from 'react';
+import { StyleSheet, Text, View, Image } from 'react-native';
 
-import {
-  StyleSheet,
-  Text,
-  View,
-  Image,
-  TextInput,
-  TouchableOpacity,
-} from 'react-native';
-import { useAuth } from '@context/auth';
+import { signIn } from '@stores/actions/auth';
 
 export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-
-  const { signIn } = useAuth();
 
   const submitLogin = useCallback(async () => {
     setIsLoading(true);
@@ -30,7 +20,7 @@ export default function SignIn() {
       setError(error.message);
     }
     setIsLoading(false);
-  }, [email, password, signIn]);
+  }, [email, password]);
 
   if (isLoading) {
     return (

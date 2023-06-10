@@ -1,5 +1,6 @@
 import { Amplify, API } from 'aws-amplify';
 import Constants from 'expo-constants';
+import * as SplashScreen from 'expo-splash-screen';
 
 const expoAwsVariables = Constants.expoConfig?.extra?.aws ?? {};
 const awsConfig = {
@@ -15,5 +16,7 @@ const awsConfig = {
     expoAwsVariables?.appsync_authenticationType ?? '',
 };
 Amplify.configure(awsConfig);
+
+SplashScreen.preventAutoHideAsync();
 
 import 'expo-router/entry';

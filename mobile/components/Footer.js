@@ -1,19 +1,20 @@
+import { useCallback } from 'react';
+import { Button } from '@rneui/themed';
 import { useRouter } from 'expo-router';
 import { SafeAreaView, StyleSheet } from 'react-native';
 
-import { useAuth } from '@context/auth';
-import { Button } from '@rneui/themed';
-import { useCallback } from 'react';
+import { signOut } from '@stores/actions/auth';
+import useCurrentUser from '@hooks/useCurrentUser';
 
 const Footer = () => {
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const currentUser = useCurrentUser();
 
   const handleRedirect = useCallback((route) => {
     router.replace(route);
   }, []);
 
-  if (!user) {
+  if (!currentUser) {
     return null;
   }
 
