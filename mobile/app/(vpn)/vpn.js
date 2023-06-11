@@ -1,12 +1,31 @@
 import { Stack } from 'expo-router';
-import { View, StyleSheet, StatusBar, SafeAreaView } from 'react-native';
-
+import {
+  View,
+  StyleSheet,
+  StatusBar,
+  SafeAreaView,
+  FlatList,
+  Text,
+} from 'react-native';
 import { ListItem } from '@rneui/themed';
 
-import useVpnInstances from '@hooks/vpnInstances/useVpnInstances';
+import { useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { fetchVpnInstances } from '@actions/vpnInstances';
+import useVpnInstances from '@hooks/useVpnInstances';
 
 export default function VpnPage() {
-  const { vpnInstances, isLoading } = useVpnInstances();
+  const dispatch = useDispatch();
+  const vpnInstances = useVpnInstances();
+
+  useEffect(() => {
+    if (vpnInstances.length) {
+      return;
+    }
+
+    dispatch(fetchVpnInstances);
+  }, [vpnInstances]);
+
   return (
     <View style={styles.pageContainer}>
       <Stack.Screen options={{ title: 'VPN Instances' }} />
@@ -18,10 +37,10 @@ export default function VpnPage() {
           </ListItem.Content>
         </ListItem>
 
-        {/* <FlatList
-          data={[...vpnInstances.keys()]}
-          renderItem={({ item: instanceId }) => {
-            const { instanceState } = vpnInstances.get(instanceId);
+        <FlatList
+          data={vpnInstances}
+          renderItem={({ item: vpnInstance }) => {
+            const { instanceId, instanceState } = vpnInstance;
             return (
               <View style={styles.item}>
                 <Text style={styles.title}>
@@ -30,7 +49,7 @@ export default function VpnPage() {
               </View>
             );
           }}
-        /> */}
+        />
       </SafeAreaView>
     </View>
   );

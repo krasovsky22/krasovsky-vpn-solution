@@ -1,5 +1,5 @@
 // import { Provider } from '@context/auth';
-import { Slot } from 'expo-router';
+import { Navigator, Slot } from 'expo-router';
 import { Provider } from 'react-redux';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar, StyleSheet, View } from 'react-native';
@@ -16,19 +16,21 @@ SplashScreen.preventAutoHideAsync();
 export default function Root() {
   return (
     <SafeAreaProvider>
-      <View style={{ flex: 1 }}>
-        <StatusBar backgroundColor="#61dafb" />
-        <Provider store={appStore}>
-          <ProtectedRoute>
-            <LoadingWrapper>
+      <Navigator>
+        <View style={{ flex: 1 }}>
+          <StatusBar backgroundColor="#61dafb" />
+          <Provider store={appStore}>
+            <ProtectedRoute>
               <View style={styles.content}>
-                <Slot />
+                <LoadingWrapper>
+                  <Slot />
+                </LoadingWrapper>
                 <Footer />
               </View>
-            </LoadingWrapper>
-          </ProtectedRoute>
-        </Provider>
-      </View>
+            </ProtectedRoute>
+          </Provider>
+        </View>
+      </Navigator>
     </SafeAreaProvider>
   );
 }

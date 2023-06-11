@@ -3,10 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import React from 'react';
 import useCurrentUser from '@hooks/useCurrentUser';
-import {
-  fetchCurrentUser,
-  unsubscribeToUserEvents,
-} from '@stores/actions/auth';
+import { fetchCurrentUser, unsubscribeToUserEvents } from '@actions/auth';
 
 const ProtectedRoute = ({ children }) => {
   const dispatch = useDispatch();
@@ -39,9 +36,6 @@ const ProtectedRoute = ({ children }) => {
       return;
     }
 
-    if (!navigation.isReady()) {
-      return;
-    }
     if (!currentUser && !inAuthGroup) {
       // Redirect to the sign-in page.
       router.replace('/sign-in');
@@ -58,6 +52,7 @@ const ProtectedRoute = ({ children }) => {
     isInitialized,
     router,
     navigation,
+    segments,
   ]);
 
   return children;

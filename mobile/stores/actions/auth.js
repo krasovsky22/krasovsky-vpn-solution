@@ -2,9 +2,11 @@ import { Auth, Hub } from 'aws-amplify';
 
 import {
   setCurrentUser,
+  setErrorMessage,
+  clearErrorMessage,
   completeInitialization,
 } from '@stores/reducers/authReducer';
-import { startLoading, completeLoading } from '@stores/reducers/loadingReducer';
+import { startLoading, completeLoading } from '@reducers/loadingReducer';
 
 let unsubscribe = () => {};
 const subscribeToUserEvents = async (dispatch) => {
@@ -39,10 +41,23 @@ export const fetchCurrentUser = async (dispatch) => {
   dispatch(completeLoading());
 };
 
-export const signOut = async () => {
+export const signOut = async (dispatch) => {
+  dispatch(startLoading('Signing out...'));
   await Auth.signOut();
+
+  dispatch(completeLoading());
 };
 
-export const signIn = async (username, password) => {
-  await Auth.signIn(username, password);
+export const signIn = (username, password) => {
+  return async (dispatch) => {
+    dispatch(startLoading('Signing in...'));
+    try {
+      await Auth.signIn(username, password);
+      dispatch(clearErrorMessage());
+    } catch (error) {
+      dispatch(setErrorMessage(error.message));
+    }
+
+    dispatch(completeLoading());
+  };
 };

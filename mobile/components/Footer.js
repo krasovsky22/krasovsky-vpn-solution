@@ -3,11 +3,13 @@ import { Button } from '@rneui/themed';
 import { useRouter } from 'expo-router';
 import { SafeAreaView, StyleSheet } from 'react-native';
 
-import { signOut } from '@stores/actions/auth';
+import { signOut } from '@actions/auth';
 import useCurrentUser from '@hooks/useCurrentUser';
+import { useDispatch } from 'react-redux';
 
 const Footer = () => {
   const router = useRouter();
+  const dispatch = useDispatch();
   const currentUser = useCurrentUser();
 
   const handleRedirect = useCallback((route) => {
@@ -59,7 +61,7 @@ const Footer = () => {
         }}
       />
       <Button
-        onPress={signOut}
+        onPress={() => dispatch(signOut)}
         title="Sign Out"
         icon={{
           type: 'MaterialCommunityIcons',

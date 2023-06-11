@@ -8,11 +8,13 @@ import {
 } from 'react-native';
 
 import useIsLoading from '@hooks/useIsLoading';
+import { useNavigation } from 'expo-router';
 
 const LoadingWrapper = ({ children }) => {
   const { isLoading, loadingAction } = useIsLoading();
+  const navigation = useNavigation();
 
-  if (isLoading) {
+  if (isLoading || !navigation.isReady()) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" />

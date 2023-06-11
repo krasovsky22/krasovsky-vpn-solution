@@ -4,8 +4,6 @@ const ec2 = new AWS.EC2();
 exports.handler = async (event, context) => {
   const { instanceId, action } = event;
 
-  console.log(JSON.stringify(event));
-
   if (!instanceId) {
     return {
       statusCode: 500,

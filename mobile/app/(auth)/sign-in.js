@@ -4,31 +4,18 @@ import { useState, useCallback } from 'react';
 import { StyleSheet, Text, View, Image } from 'react-native';
 
 import { signIn } from '@stores/actions/auth';
+import { useDispatch, useSelector } from 'react-redux';
 
 export default function SignIn() {
-  const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useDispatch();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const error = useSelector((state) => state.auth.errorMessage);
 
   const submitLogin = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      await signIn(email, password);
-    } catch (error) {
-      console.log(error.message);
-      setError(error.message);
-    }
-    setIsLoading(false);
+    const signInThunk = signIn(email, password);
+    dispatch(signInThunk);
   }, [email, password]);
-
-  if (isLoading) {
-    return (
-      <View style={styles.wrapper}>
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>

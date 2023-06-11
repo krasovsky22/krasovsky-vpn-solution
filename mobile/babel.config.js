@@ -8,14 +8,15 @@ module.exports = function(api) {
         'module-resolver',
         {
           alias: {
-            '@lib': '/lib',
-            '@api': './api',
             '@hooks': './hooks',
-            '@stores': './stores',
             '@assets': './assets',
-            '@context': './context',
-            '@graphql': './graphql',
             '@components': './components',
+
+            '@stores': './stores',
+            '@api': './stores/api',
+            '@graphql': './stores/graphql',
+            '@actions': './stores/actions',
+            '@reducers': './stores/reducers',
           },
           extensions: ['.js', '.jsx', '.ts', '.tsx'],
         },
