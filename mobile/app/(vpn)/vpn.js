@@ -1,18 +1,12 @@
 import { Stack } from 'expo-router';
-import {
-  View,
-  StyleSheet,
-  StatusBar,
-  SafeAreaView,
-  FlatList,
-  Text,
-} from 'react-native';
+import { View, StyleSheet, StatusBar, SafeAreaView } from 'react-native';
 import { Button, ListItem } from '@rneui/themed';
 
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { fetchVpnInstances } from '@actions/vpnInstances';
 import useVpnInstances from '@hooks/useVpnInstances';
+import { startVpnInstance, stopVpnInstance } from '@api/vpnInstances';
 
 export default function VpnPage() {
   const dispatch = useDispatch();
@@ -26,23 +20,42 @@ export default function VpnPage() {
     dispatch(fetchVpnInstances);
   }, [vpnInstances]);
 
+  const handleActionButtonCallback = useCallback(async (vpnInstance) => {
+    const { instanceId, instanceState } = vpnInstance;
+    const fn = instanceState === 'stopped' ? startVpnInstance : stopVpnInstance;
+
+    const response = await fn(instanceId);
+    console.log('response', response);
+  }, []);
+
   return (
     <View style={styles.pageContainer}>
       <Stack.Screen options={{ title: 'VPN Instances' }} />
       <SafeAreaView>
-        {vpnInstances.map((vpnInstance) => (
-          <View key={vpnInstance.instanceId} style={styles.listItemContainer}>
-            <ListItem bottomDivider>
-              <ListItem.Content>
-                <ListItem.Title>{vpnInstance.instanceId}</ListItem.Title>
-                <ListItem.Subtitle>
-                  {vpnInstance.instanceState}
-                </ListItem.Subtitle>
-              </ListItem.Content>
-              <Button>Start</Button>
-            </ListItem>
-          </View>
-        ))}
+        {vpnInstances.map((vpnInstance) => {
+          const { instanceId, instanceState } = vpnInstance;
+          const isPendingAction = ['pending', 'stopping'].includes(
+            instanceState
+          );
+          const isStopped = instanceState === 'stopped';
+
+          return (
+            <View key={instanceId} style={styles.listItemContainer}>
+              <ListItem bottomDivider>
+                <ListItem.Content>
+                  <ListItem.Title>{instanceId}</ListItem.Title>
+                  <ListItem.Subtitle>{instanceState}</ListItem.Subtitle>
+                </ListItem.Content>
+                <Button
+                  disabled={isPendingAction}
+                  onPress={() => handleActionButtonCallback(vpnInstance)}
+                >
+                  {isStopped ? 'Start' : 'Stop'}
+                </Button>
+              </ListItem>
+            </View>
+          );
+        })}
       </SafeAreaView>
     </View>
   );
