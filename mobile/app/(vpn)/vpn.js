@@ -7,7 +7,7 @@ import {
   FlatList,
   Text,
 } from 'react-native';
-import { ListItem } from '@rneui/themed';
+import { Button, ListItem } from '@rneui/themed';
 
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
@@ -30,26 +30,19 @@ export default function VpnPage() {
     <View style={styles.pageContainer}>
       <Stack.Screen options={{ title: 'VPN Instances' }} />
       <SafeAreaView>
-        <ListItem>
-          <ListItem.Content>
-            <ListItem.Title>John Doe</ListItem.Title>
-            <ListItem.Subtitle>CEO, Example.com</ListItem.Subtitle>
-          </ListItem.Content>
-        </ListItem>
-
-        <FlatList
-          data={vpnInstances}
-          renderItem={({ item: vpnInstance }) => {
-            const { instanceId, instanceState } = vpnInstance;
-            return (
-              <View style={styles.item}>
-                <Text style={styles.title}>
-                  {instanceId} - {instanceState}
-                </Text>
-              </View>
-            );
-          }}
-        />
+        {vpnInstances.map((vpnInstance) => (
+          <View key={vpnInstance.instanceId} style={styles.listItemContainer}>
+            <ListItem bottomDivider>
+              <ListItem.Content>
+                <ListItem.Title>{vpnInstance.instanceId}</ListItem.Title>
+                <ListItem.Subtitle>
+                  {vpnInstance.instanceState}
+                </ListItem.Subtitle>
+              </ListItem.Content>
+              <Button>Start</Button>
+            </ListItem>
+          </View>
+        ))}
       </SafeAreaView>
     </View>
   );
@@ -65,6 +58,9 @@ const styles = StyleSheet.create({
   pageContainer: {
     flex: 1,
     marginTop: StatusBar.currentHeight || 0,
+  },
+  listItemContainer: {
+    padding: 10,
   },
   //   container: {
   //     flex: 3,

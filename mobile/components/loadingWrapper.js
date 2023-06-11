@@ -14,7 +14,7 @@ const LoadingWrapper = ({ children }) => {
   const { isLoading, loadingAction } = useIsLoading();
   const navigation = useNavigation();
 
-  if (isLoading || !navigation.isReady()) {
+  if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" />
