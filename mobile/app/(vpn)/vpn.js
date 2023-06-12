@@ -1,31 +1,30 @@
 import { Stack } from 'expo-router';
-import { View, StyleSheet, StatusBar, SafeAreaView } from 'react-native';
 import { Button, ListItem } from '@rneui/themed';
+import { View, StyleSheet, StatusBar, SafeAreaView } from 'react-native';
 
 import { useCallback, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { fetchVpnInstances } from '@actions/vpnInstances';
+import {
+  fetchVpnInstances,
+  startVpnInstance,
+  stopVpnInstance,
+} from '@actions/vpnInstances';
 import useVpnInstances from '@hooks/useVpnInstances';
-import { startVpnInstance, stopVpnInstance } from '@api/vpnInstances';
 
 export default function VpnPage() {
   const dispatch = useDispatch();
   const vpnInstances = useVpnInstances();
 
   useEffect(() => {
-    if (vpnInstances.length) {
-      return;
-    }
-
     dispatch(fetchVpnInstances);
-  }, [vpnInstances]);
+  }, []);
 
-  const handleActionButtonCallback = useCallback(async (vpnInstance) => {
+  const handleActionButtonCallback = useCallback((vpnInstance) => {
     const { instanceId, instanceState } = vpnInstance;
     const fn = instanceState === 'stopped' ? startVpnInstance : stopVpnInstance;
 
-    const response = await fn(instanceId);
-    console.log('response', response);
+    const actionThunk = fn(instanceId);
+    dispatch(actionThunk);
   }, []);
 
   return (

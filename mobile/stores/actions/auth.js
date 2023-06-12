@@ -1,5 +1,3 @@
-import { Auth, Hub } from 'aws-amplify';
-
 import {
   setCurrentUser,
   setErrorMessage,
@@ -8,42 +6,30 @@ import {
 } from '@stores/reducers/authReducer';
 import { startLoading, completeLoading } from '@reducers/loadingReducer';
 
-let unsubscribe = () => {};
-const subscribeToUserEvents = async (dispatch) => {
-  unsubscribe = Hub.listen('auth', ({ payload: { event, data } }) => {
-    switch (event) {
-      case 'signIn':
-        dispatch(setCurrentUser(data));
-        break;
-      case 'signOut':
-        dispatch(setCurrentUser(null));
-        break;
-      case 'customOAuthState':
-        console.log('some unhandled custom state', data);
-    }
-  });
-};
+import {
+  getCurrentUser,
+  signIn as signInApi,
+  signOut as signOutApi,
+  subscribeToUserEvents,
+} from '@api/auth';
 
+let unsubscribe = () => {};
 export const unsubscribeToUserEvents = unsubscribe;
 
 export const fetchCurrentUser = async (dispatch) => {
-  subscribeToUserEvents(dispatch);
+  unsubscribe = subscribeToUserEvents((user) => dispatch(setCurrentUser(user)));
   dispatch(startLoading('Fetching user session...'));
 
-  try {
-    const user = await Auth.currentAuthenticatedUser();
-    dispatch(setCurrentUser(user));
-  } catch (e) {
-    console.warn('No user found.');
-  }
+  const user = await getCurrentUser();
 
+  dispatch(setCurrentUser(user));
   dispatch(completeInitialization());
   dispatch(completeLoading());
 };
 
 export const signOut = async (dispatch) => {
   dispatch(startLoading('Signing out...'));
-  await Auth.signOut();
+  await signOutApi();
 
   dispatch(completeLoading());
 };
@@ -51,11 +37,12 @@ export const signOut = async (dispatch) => {
 export const signIn = (username, password) => {
   return async (dispatch) => {
     dispatch(startLoading('Signing in...'));
-    try {
-      await Auth.signIn(username, password);
+    const { success, message } = await signInApi(username, password);
+
+    if (success) {
       dispatch(clearErrorMessage());
-    } catch (error) {
-      dispatch(setErrorMessage(error.message));
+    } else {
+      dispatch(setErrorMessage(message));
     }
 
     dispatch(completeLoading());

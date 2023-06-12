@@ -11,7 +11,6 @@ export const loadVpnInstances = async () => {
 export const subscribeToVpnInstancesUpdates = (callBack) => {
   return API.graphql(graphqlOperation(vpnInstanceUpdated)).subscribe({
     next: ({ value }) => {
-      console.log('subscription event', value);
       const updatedVpnInstance = value.data.vpnInstanceUpdated;
       callBack(updatedVpnInstance);
     },
