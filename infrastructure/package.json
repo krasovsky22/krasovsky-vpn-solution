@@ -5,6 +5,8 @@
   "devDependencies": {
     "@aws-sdk/client-dynamodb": "^3.341.0",
     "@aws-sdk/client-ec2": "^3.347.1",
+    "@aws-sdk/client-rekognition": "^3.354.0",
+    "@aws-sdk/client-s3": "^3.354.0",
     "@aws-sdk/util-dynamodb": "^3.341.0",
     "serverless": "^3.32.0",
     "serverless-appsync-plugin": "^2.2.1",
@@ -15,6 +17,7 @@
   },
   "dependencies": {
     "@aws-crypto/sha256-js": "^4.0.0",
+    "heic-convert": "^1.2.4",
     "node-fetch": "2"
   }
 }

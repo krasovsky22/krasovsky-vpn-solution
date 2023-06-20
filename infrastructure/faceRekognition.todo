@@ -1,0 +1,12 @@
+
+- steps:
+    - base image file is uploaded into s3 bucket /baseImagesUploads with metadata Name = personName
+    - event triggered to lambda function
+    - lambda function calls rekognition API to create rekognition id
+    - file getting moved into /baseImages folder
+    - rekogninion_id is getting stored in dynamo db talbe
+
+- action items
+    - create dynamo db table to keep base images rekognition ids
+    - create AppSync graphql mutation to insert rekognized image
+    - create lambda function to process base image

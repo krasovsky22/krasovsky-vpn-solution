@@ -3,15 +3,23 @@ type Mutation {
     @aws_iam
   startVpnInstance(instanceId: ID!): Boolean @aws_cognito_user_pools
   stopVpnInstance(instanceId: ID!): Boolean @aws_cognito_user_pools
+
+  createFaceBaseRecognition(
+    baseRecognitionDetails: BaseFaceRekognitionInput!
+  ): BaseFaceRekognition! @aws_iam
 }
 
 type Query {
   getVpnInstances: [VpnInstance]
+  getFaceBaseRekognitions: [BaseFaceRekognition]
 }
 
 type Subscription {
   vpnInstanceUpdated: VpnInstance
     @aws_subscribe(mutations: ["createOrUpdateVpnInstance"])
+
+  baseFaceRekognitionUpdated: BaseFaceRekognition
+    @aws_subscribe(mutations: ["createFaceBaseRecognition"])
 }
 
 type VpnInstance @aws_iam @aws_cognito_user_pools {
@@ -19,9 +27,23 @@ type VpnInstance @aws_iam @aws_cognito_user_pools {
   instanceState: String!
 }
 
+type BaseFaceRekognition @aws_iam @aws_cognito_user_pools {
+  rekognitionId: ID!
+  name: String!
+  s3Path: String!
+  createdAt: AWSDateTime!
+}
+
+# INPUTS
 input VpnInstanceInput {
   instanceId: String!
   instanceState: String!
+}
+
+input BaseFaceRekognitionInput {
+  rekognitionId: ID!
+  name: String!
+  s3Path: String!
 }
 
 schema {

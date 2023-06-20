@@ -8,14 +8,40 @@ import {
   StatusBar,
   ActivityIndicator,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Stack } from 'expo-router';
-import { Card, ListItem } from '@rneui/themed';
+import { Button, Image, Card, ListItem } from '@rneui/themed';
 
 export default function App() {
+  const [images, setImages] = useState([]);
+
+  const pickImage = async () => {
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: false,
+      allowsMultipleSelection: true,
+    });
+
+    console.log('results', result);
+
+    if (!result.canceled) {
+      setImages(result.assets);
+    }
+  };
+
   return (
     <View style={styles.pageContainer}>
       <SafeAreaView>
-        <Text>Initial Home Page</Text>
+        <Button title="Pick an image from camera roll" onPress={pickImage} />
+        {images.map((image) => (
+          <Image
+            key={image.uri}
+            source={{ uri: image.uri }}
+            style={{ width: 200, height: 200 }}
+            alt="image"
+          />
+        ))}
       </SafeAreaView>
     </View>
   );

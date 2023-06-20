@@ -3,7 +3,7 @@ frameworkVersion: '3'
 
 custom:
   awsRegion: us-west-1
-  sqsPrimaryKey: instanceId
+  dynamoTablePrimaryKey: instanceId
   vpnStatelambdaFunctionName: syncVpnState
   startAndStopVpnInstanceLambdaFunctionName: startAndStopVpnInstance
 
@@ -21,6 +21,24 @@ custom:
   vpnStateTableName: vpn-table-${self:provider.stage}
   awsSyncGraphqlEndpoint: !GetAtt GraphQlApi.GraphQLUrl
 
+  # face rekognition
+  ## lambda
+  photoProcessorLambdaName: photoProcessorOnUpload
+  basePhotoProcessorLambdaName: baseProcessorOnUpload
+
+  ## s3
+  s3PhotosBucket: 'krasovsky-family-photos'
+  baseUploadFolder: 'baseUploads'
+  baseProcessedFolder: 'baseProcessed'
+  processPhotoUploadFolder: 'photoUploads'
+
+  ## rekognition
+  rekognitionCollectionId: 'family-rekognition-collection'
+
+  ## dynamo db
+  faceRekognitionBaseTableName: face-rekognition-base-table-${self:provider.stage}
+  faceRekognitionBasePrimaryKey: rekognitionId
+
   dynamodb:
     stages:
       - dev
@@ -37,24 +55,43 @@ appSync:
     - type: AWS_IAM
 
   resolvers:
+    # queries
     getVpnInstances:
       dataSource: VpnTable
       type: Query
       field: getVpnInstances
       functions:
         - scanVpnTable
+
+    getFaceBaseRekognitions:
+      dataSource: BaseFaceRekognitionTable
+      type: Query
+      field: getFaceBaseRekognitions
+      functions:
+        - scanFaceBaseRekognitionsTable
+
+    # mutations
     createOrUpdateVpnInstance:
       dataSource: VpnTable
       type: Mutation
       field: createOrUpdateVpnInstance
       functions:
         - putVpnInstance
+
+    createFaceBaseRecognition:
+      dataSource: BaseFaceRekognitionTable
+      type: Mutation
+      field: createFaceBaseRecognition
+      functions:
+        - putFaceBaseRekognition
+
     startVpnInstance:
       dataSource: AwsLambda
       type: Mutation
       field: startVpnInstance
       functions:
         - startOrStopVpnInstance
+
     stopVpnInstance:
       dataSource: AwsLambda
       type: Mutation
@@ -63,27 +100,44 @@ appSync:
         - startOrStopVpnInstance
 
   pipelineFunctions:
+    # SCAN
     scanVpnTable:
       dataSource: VpnTable
-      code: resolvers/getVpnInstances.js
+      code: resolvers/vpnInstances/getVpnInstances.js
 
+    scanFaceBaseRekognitionsTable:
+      dataSource: BaseFaceRekognitionTable
+      code: resolvers/baseFaceRekognitions/getFaceBaseRekognitions.js
+
+    # MUTATIONS
     putVpnInstance:
       dataSource: VpnTable
-      code: resolvers/putVpnInstance.js
+      code: resolvers/vpnInstances/putVpnInstance.js
+
+    putFaceBaseRekognition:
+      dataSource: BaseFaceRekognitionTable
+      code: resolvers/baseFaceRekognitions/putFaceBaseRekognition.js
 
     startOrStopVpnInstance:
       dataSource: AwsLambda
-      code: resolvers/startOrStopVpnInstance.js
+      code: resolvers/vpnInstances/startOrStopVpnInstance.js
 
   dataSources:
     VpnTable:
       type: AMAZON_DYNAMODB
       config:
         tableName: !Ref VpnTable
+
+    BaseFaceRekognitionTable:
+      type: AMAZON_DYNAMODB
+      config:
+        tableName: !Ref BaseFaceRekognitionTable
+
     AwsLambda:
       type: AWS_LAMBDA
       config:
-        functionArn: { Fn::GetAtt: [StartAndStopVpnInstanceLambdaFunction, Arn] }
+        functionArn:
+          { Fn::GetAtt: [StartAndStopVpnInstanceLambdaFunction, Arn] }
         serviceRoleArn: { Fn::GetAtt: [AppSyncExecuteLambdaRole, Arn] }
 
 provider:
@@ -93,7 +147,11 @@ provider:
   region: ${self:custom.awsRegion}
   environment:
     GRAPHQL_AWS_REGION: ${self:custom.awsRegion}
-    GRAPHQL_ENDPOINT: !GetAtt GraphQlApi.GraphQLUrl
+    #GRAPHQL_ENDPOINT: !GetAtt GraphQlApi.GraphQLUrl
+    GRAPHQL_ENDPOINT: 'https://mpe7fmajevh7pbb7zt4mlwktk4.appsync-api.us-west-1.amazonaws.com/graphql'
+    PHOTOS_S3_BUCKET: ${self:custom.s3PhotosBucket}
+    BASE_PROCESSED_FOLDER: ${self:custom.baseProcessedFolder}
+    REKOGNITION_COLLECTION_ID: ${self:custom.rekognitionCollectionId}
 
 plugins:
   - serverless-offline
@@ -105,7 +163,7 @@ plugins:
 functions:
   syncVpnState:
     name: ${self:custom.vpnStatelambdaFunctionName}
-    handler: syncVpnStateLambda.handler
+    handler: lambdaSyncVpnState.handler
     events:
       - cloudwatchEvent:
           name: 'vpn-service-cloudwatch-event-on-ec2-instance-state-change'
@@ -133,7 +191,7 @@ functions:
 
   startAndStopVpnInstance:
     name: ${self:custom.startAndStopVpnInstanceLambdaFunctionName}
-    handler: startAndStopVpnInstanceLambda.handler
+    handler: lambdaStartAndStopVpnInstance.handler
     iamRoleStatementsName: 'lambda-start-stop-ec2'
     iamRoleStatements:
       - Effect: Allow
@@ -143,20 +201,102 @@ functions:
           - 'ec2:Start*'
           - 'ec2:Stop*'
 
+  processBasePhoto:
+    name: ${self:custom.basePhotoProcessorLambdaName}
+    handler: lambdaProcessUploadedBasePhoto.handler
+    events:
+      - s3:
+          bucket: ${self:custom.s3PhotosBucket}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: !Sub '${self:custom.baseUploadFolder}/'
+          existing: true
+    iamRoleStatements:
+      # publish to amazon rekognition
+      - Effect: Allow
+        Action:
+          - rekognition:IndexFaces
+        Resource:
+          - { Fn::GetAtt: [FaceRekognitionCollection, Arn] }
+      # read/delete files from s3
+      - Effect: Allow
+        Action:
+          - 's3:GetObject'
+          - 's3:PutObject'
+          - 's3:DeleteObject'
+        Resource:
+          - !Sub 'arn:aws:s3:::${self:custom.s3PhotosBucket}/*'
+      # appSync Mutations
+      - Effect: Allow
+        Action:
+          - appsync:GraphQL
+        Resource:
+          - {
+              Fn::Join:
+                [
+                  '',
+                  [
+                    { Ref: GraphQlApi },
+                    '/types/Mutation/fields/createFaceBaseRecognition',
+                  ],
+                ],
+            }
+
+  processUploadedPhoto:
+    name: ${self:custom.photoProcessorLambdaName}
+    handler: lambdaProcessUploadedFamilyPhoto.handler
+    timeout: 60
+    events:
+      - s3:
+          bucket: ${self:custom.s3PhotosBucket}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: !Sub '${self:custom.processPhotoUploadFolder}/'
+          existing: true
+    iamRoleStatements:
+      # publish to amazon rekognition
+      # - Effect: Allow
+      #   Action:
+      #     - sns:Publish
+      #   Resource:
+      #     - arn:aws:sns:*:*:AmazonRekognition*
+      # read files from s3
+      - Effect: Allow
+        Action:
+          - 's3:GetObject'
+          - 's3:PutObject'
+          - 's3:DeleteObject'
+        Resource:
+          - !Sub 'arn:aws:s3:::${self:custom.s3PhotosBucket}/*'
+
 resources:
   Resources:
+    # DYNAMO DB
+    BaseFaceRekognitionTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: ${self:custom.faceRekognitionBasePrimaryKey}
+            AttributeType: S
+        KeySchema:
+          - AttributeName: ${self:custom.faceRekognitionBasePrimaryKey}
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.faceRekognitionBaseTableName}
+
     VpnTable:
       Type: AWS::DynamoDB::Table
       Properties:
         AttributeDefinitions:
-          - AttributeName: ${self:custom.sqsPrimaryKey}
+          - AttributeName: ${self:custom.dynamoTablePrimaryKey}
             AttributeType: S
         KeySchema:
-          - AttributeName: ${self:custom.sqsPrimaryKey}
+          - AttributeName: ${self:custom.dynamoTablePrimaryKey}
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
         TableName: ${self:custom.vpnStateTableName}
 
+    # COGNITO
     CognitoUserPool:
       Type: AWS::Cognito::UserPool
       Properties:
@@ -268,6 +408,12 @@ resources:
                     - 'dynamodb:*'
                   Resource:
                     Fn::GetAtt: [VpnTable, Arn]
+
+    FaceRekognitionCollection:
+      Type: AWS::Rekognition::Collection
+      Properties:
+        CollectionId: ${self:custom.rekognitionCollectionId}
+
 
   Outputs:
     AwsAppSyncRegion:
