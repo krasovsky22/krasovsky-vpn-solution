@@ -27,7 +27,7 @@
           "arn": "arn:aws:s3:::krasovsky-family-photos"
         },
         "object": {
-          "key": "baseUploads/mia.HEIC",
+          "key": "uploads/IMG_0275.HEIC",
           "size": 59943,
           "eTag": "d60c2b4c73f655c7faafba3f82a030a3",
           "sequencer": "0064905EFB32F0057B"

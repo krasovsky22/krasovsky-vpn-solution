@@ -30,7 +30,9 @@ custom:
   s3PhotosBucket: 'krasovsky-family-photos'
   baseUploadFolder: 'baseUploads'
   baseProcessedFolder: 'baseProcessed'
-  processPhotoUploadFolder: 'photoUploads'
+
+  photoUploadFolder: 'photoUploads'
+  processedPhotosFolder: 'photoUploads'
 
   ## rekognition
   rekognitionCollectionId: 'family-rekognition-collection'
@@ -150,6 +152,7 @@ provider:
     #GRAPHQL_ENDPOINT: !GetAtt GraphQlApi.GraphQLUrl
     GRAPHQL_ENDPOINT: 'https://mpe7fmajevh7pbb7zt4mlwktk4.appsync-api.us-west-1.amazonaws.com/graphql'
     PHOTOS_S3_BUCKET: ${self:custom.s3PhotosBucket}
+    PROCESSED_FOLDER: ${self:custom.processedPhotosFolder}
     BASE_PROCESSED_FOLDER: ${self:custom.baseProcessedFolder}
     REKOGNITION_COLLECTION_ID: ${self:custom.rekognitionCollectionId}
 
@@ -204,6 +207,7 @@ functions:
   processBasePhoto:
     name: ${self:custom.basePhotoProcessorLambdaName}
     handler: lambdaProcessUploadedBasePhoto.handler
+    timeout: 60
     events:
       - s3:
           bucket: ${self:custom.s3PhotosBucket}
@@ -251,16 +255,16 @@ functions:
           bucket: ${self:custom.s3PhotosBucket}
           event: s3:ObjectCreated:*
           rules:
-            - prefix: !Sub '${self:custom.processPhotoUploadFolder}/'
+            - prefix: !Sub '${self:custom.photoUploadFolder}/'
           existing: true
     iamRoleStatements:
       # publish to amazon rekognition
-      # - Effect: Allow
-      #   Action:
-      #     - sns:Publish
-      #   Resource:
-      #     - arn:aws:sns:*:*:AmazonRekognition*
-      # read files from s3
+      - Effect: Allow
+        Action:
+          - rekognition:SearchFacesByImage
+        Resource:
+          - { Fn::GetAtt: [FaceRekognitionCollection, Arn] }
+      # read/delete files from s3
       - Effect: Allow
         Action:
           - 's3:GetObject'
@@ -268,6 +272,21 @@ functions:
           - 's3:DeleteObject'
         Resource:
           - !Sub 'arn:aws:s3:::${self:custom.s3PhotosBucket}/*'
+      # appSync Mutations
+      # - Effect: Allow
+      #   Action:
+      #     - appsync:GraphQL
+      #   Resource:
+      #     - {
+      #         Fn::Join:
+      #           [
+      #             '',
+      #             [
+      #               { Ref: GraphQlApi },
+      #               '/types/Mutation/fields/createFaceBaseRecognition',
+      #             ],
+      #           ],
+      #       }
 
 resources:
   Resources:
