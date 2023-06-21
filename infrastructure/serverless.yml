@@ -32,7 +32,7 @@ custom:
   baseProcessedFolder: 'baseProcessed'
 
   photoUploadFolder: 'photoUploads'
-  processedPhotosFolder: 'photoUploads'
+  processedPhotosFolder: 'photoUploadsProcessed'
 
   ## rekognition
   rekognitionCollectionId: 'family-rekognition-collection'
@@ -261,6 +261,7 @@ functions:
       # publish to amazon rekognition
       - Effect: Allow
         Action:
+          - rekognition:DetectFaces
           - rekognition:SearchFacesByImage
         Resource:
           - { Fn::GetAtt: [FaceRekognitionCollection, Arn] }

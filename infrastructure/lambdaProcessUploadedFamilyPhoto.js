@@ -7,8 +7,10 @@ const {
 const {
   RekognitionClient,
   SearchFacesByImageCommand,
+  DetectFacesCommand,
 } = require('@aws-sdk/client-rekognition');
 const convert = require('heic-convert');
+const sharp = require('sharp');
 
 const fetch = require('node-fetch');
 const crypto = require('@aws-crypto/sha256-js');
@@ -166,6 +168,11 @@ const handler = async (event) => {
         bucketName
       );
 
+      const pathArr = objectName.split('/');
+      const fileName = pathArr[pathArr.length - 1];
+      const extentionSplit = fileName.split('.');
+      const fileNameWithoutExtention = extentionSplit[0];
+
       try {
         const jpegBuffer = await convert({
           buffer: heicBuffer,
@@ -173,13 +180,13 @@ const handler = async (event) => {
           quality: 0.8, // Adjust the quality value as needed
         });
 
-        const newKey = `${processedFolderDestination}/${metadata.name}.JPEG`;
+        const newKey = `${processedFolderDestination}/${fileNameWithoutExtention}.JPEG`;
         console.log(`saving ${newKey} into bucket ${bucketName}`);
         // move image to processed folder
         await putImageBufferToS3(jpegBuffer, newKey, bucketName, metadata);
 
-        const searchFacesByImageCommand = new SearchFacesByImageCommand({
-          CollectionId: rekognitionCollectionId,
+        const command = new DetectFacesCommand({
+          //   CollectionId: rekognitionCollectionId,
           Image: {
             Bytes: jpegBuffer,
           },
@@ -188,15 +195,43 @@ const handler = async (event) => {
         console.log(
           `executing face indexing command for ${newKey} in collection_id ${rekognitionCollectionId}`
         );
-        const rekognitionResponse = await rekognitionClient.send(
-          searchFacesByImageCommand
-        );
+        const rekognitionResponse = await rekognitionClient.send(command);
+
+        console.log('response', rekognitionResponse);
+
+        const { width: imageWidth, height: imageHeight } = await sharp(
+          jpegBuffer
+        ).metadata();
 
         return await Promise.all(
-          rekognitionResponse?.FaceMatches?.map(async (faceRecord) => {
-            const { Face, Similarity } = faceRecord;
+          rekognitionResponse?.FaceDetails?.map(async (faceRecord, index) => {
+            const { Face, Similarity, BoundingBox } = faceRecord;
 
-            console.log('detected', Face, Similarity);
+            const cropLeft = Math.round(BoundingBox.Left * imageWidth);
+            const cropTop = Math.round(BoundingBox.Top * imageHeight);
+            const cropWidth = Math.round(BoundingBox.Width * imageWidth);
+            const cropHeight = Math.round(BoundingBox.Height * imageHeight);
+
+            const croppedImageBuffer = await sharp(jpegBuffer)
+              .extract({
+                left: cropLeft,
+                top: cropTop,
+                width: cropWidth,
+                height: cropHeight,
+              })
+              .toBuffer();
+
+            console.log(`storing copped image ${index}`);
+            const newTempKey = newKey.replace('.', `_${index}.`);
+            await putImageBufferToS3(
+              croppedImageBuffer,
+              newTempKey,
+              bucketName,
+              metadata
+            );
+
+            return { buffer: croppedImageBuffer, key: newTempKey };
+
             // const { FaceId } = Face;
 
             // console.log(
@@ -204,10 +239,29 @@ const handler = async (event) => {
             // );
             // return executeGraphqlFunction(metadata.name, newKey, FaceId);
           }) ?? []
-        );
+        ).then((croppedImageBuffers) => {
+          return Promise.all(
+            croppedImageBuffers.map(async ({ buffer, key }) => {
+              const command = new SearchFacesByImageCommand({
+                CollectionId: rekognitionCollectionId,
+                Image: {
+                  Bytes: buffer,
+                },
+                MaxFaces: 1,
+              });
+
+              const rekognitionResponse = await rekognitionClient.send(command);
+
+              rekognitionResponse?.FaceMatches?.map((face) => {
+                console.log(
+                  `detected in cropped ${key} image ${JSON.stringify(face)}`
+                );
+              });
+            })
+          );
+        });
       } catch (e) {
-        console.error('Unable to convert to JPEG', e);
-        throw e;
+        console.log('ERROR', e);
       }
     })
   );

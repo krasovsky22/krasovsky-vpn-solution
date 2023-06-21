@@ -18,6 +18,7 @@
   "dependencies": {
     "@aws-crypto/sha256-js": "^4.0.0",
     "heic-convert": "^1.2.4",
-    "node-fetch": "2"
+    "node-fetch": "2",
+    "sharp": "^0.32.1"
   }
 }
