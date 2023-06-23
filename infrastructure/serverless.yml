@@ -159,8 +159,8 @@ provider:
   region: ${self:custom.awsRegion}
   environment:
     GRAPHQL_AWS_REGION: ${self:custom.awsRegion}
-    #GRAPHQL_ENDPOINT: !GetAtt GraphQlApi.GraphQLUrl
-    GRAPHQL_ENDPOINT: 'https://lumhaa7sgfha5bj7agdek23n6q.appsync-api.us-west-1.amazonaws.com/graphql'
+    GRAPHQL_ENDPOINT: !GetAtt GraphQlApi.GraphQLUrl
+    # GRAPHQL_ENDPOINT: 'https://lumhaa7sgfha5bj7agdek23n6q.appsync-api.us-west-1.amazonaws.com/graphql'
     PHOTOS_S3_BUCKET: ${self:custom.s3PhotosBucket}
     PROCESSED_FOLDER: ${self:custom.processedPhotosFolder}
     BASE_PROCESSED_FOLDER: ${self:custom.baseProcessedFolder}
