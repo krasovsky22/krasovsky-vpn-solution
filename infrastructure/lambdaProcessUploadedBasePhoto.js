@@ -22,8 +22,8 @@ const rekognitionClient = new RekognitionClient();
 const { Sha256 } = crypto;
 const AWS_REGION = process.env.GRAPHQL_AWS_REGION;
 const GRAPHQL_ENDPOINT = process.env.GRAPHQL_ENDPOINT;
-const processedFolderDestination = process.env.BASE_PROCESSED_FOLDER;
-const rekognitionCollectionId = process.env.REKOGNITION_COLLECTION_ID;
+const BASE_PROCESSED_FOLDER = process.env.BASE_PROCESSED_FOLDER;
+const REKOGNITION_COLLECTION_ID = process.env.REKOGNITION_COLLECTION_ID;
 
 // https://stackoverflow.com/questions/36942442/how-to-get-response-from-s3-getobject-in-node-js
 const getImageBufferFromS3 = async (key, bucket) => {
@@ -73,7 +73,7 @@ const putImageBufferToS3 = async (buffer, key, bucket, metadata) => {
   return s3Client.send(command);
 };
 
-const executeGraphqlFunction = async (personName, s3Path, rekognitionId) => {
+const executeGraphqlFunction = async (personId, s3Path, rekognitionId) => {
   const query = /* GraphQL */ `
     mutation createFaceBaseRecognition(
       $baseRecognitionDetails: BaseFaceRekognitionInput!
@@ -81,9 +81,8 @@ const executeGraphqlFunction = async (personName, s3Path, rekognitionId) => {
       createFaceBaseRecognition(
         baseRecognitionDetails: $baseRecognitionDetails
       ) {
-        name
         s3Path
-        createdAt
+        personId
         rekognitionId
       }
     }
@@ -92,8 +91,8 @@ const executeGraphqlFunction = async (personName, s3Path, rekognitionId) => {
   const variables = {
     baseRecognitionDetails: {
       s3Path,
+      personId,
       rekognitionId,
-      name: personName,
     },
   };
 
@@ -150,71 +149,100 @@ const executeGraphqlFunction = async (personName, s3Path, rekognitionId) => {
   };
 };
 
+const convertHeicToJpeg = async (heicBuffer) => {
+  return convert({
+    buffer: heicBuffer,
+    format: 'JPEG',
+    quality: 0.8, // Adjust the quality value as needed
+  });
+};
+
+/** will convert uploads/test.HEIC into test */
+const generateJpegFileName = (originalFilePath) => {
+  // remove all subpathes
+  const pathArr = originalFilePath.split('/');
+  const fileName = pathArr[pathArr.length - 1];
+  // remove extention
+  const extentionSplit = fileName.split('.');
+  return extentionSplit[0] + '.JPEG';
+};
+
+const findFaceInImage = async (jpegBuffer) => {
+  const indexFacesCommand = new IndexFacesCommand({
+    CollectionId: REKOGNITION_COLLECTION_ID,
+    Image: {
+      Bytes: jpegBuffer,
+    },
+    MaxFaces: 1,
+  });
+
+  console.log(
+    `executing face indexing command for ${newKey} in collection_id ${REKOGNITION_COLLECTION_ID}`
+  );
+  const rekognitionResponse = await rekognitionClient.send(indexFacesCommand);
+
+  return rekognitionResponse?.FaceRecords.map(
+    (faceRecord) => faceRecord.Face.FaceId
+  );
+};
+
 const handler = async (event) => {
-  await Promise.all(
-    (event?.Records ?? []).map(async (record) => {
-      const { s3 } = record;
+  try {
+    const responses = await Promise.all(
+      (event?.Records ?? []).map(async (record) => {
+        const { s3 } = record;
 
-      const { bucket, object } = s3;
-      const bucketName = bucket.name;
-      const objectName = object.key;
+        const { bucket, object } = s3;
+        const bucketName = bucket.name;
+        const objectName = object.key;
 
-      console.log(`processing ${objectName} in bucket ${bucketName}`);
+        console.log(`processing ${objectName} in bucket ${bucketName}`);
 
-      const { buffer: heicBuffer, metadata } = await getImageBufferFromS3(
-        objectName,
-        bucketName
-      );
+        const { buffer: heicBuffer, metadata } = await getImageBufferFromS3(
+          objectName,
+          bucketName
+        );
 
-      try {
-        const jpegBuffer = await convert({
-          buffer: heicBuffer,
-          format: 'JPEG',
-          quality: 0.8, // Adjust the quality value as needed
-        });
+        if (!metadata?.personId) {
+          const error = `Incorrect metadata for uploaded file ${objectName} - ${bucketName}. personId is required.`;
+          console.error(error);
+          return Promise.rejeect(errors);
+        }
 
-        const newKey = `${processedFolderDestination}/${metadata.name}.JPEG`;
+        const { personId } = metadata;
+        const jpegFileName = generateJpegFileName(objectName);
+        const newKey = `${BASE_PROCESSED_FOLDER}/${jpegFileName}`;
+
+        const jpegBuffer = await convertHeicToJpeg(heicBuffer);
+
         console.log(`saving ${newKey} into bucket ${bucketName}`);
         // move image to processed folder
         await putImageBufferToS3(jpegBuffer, newKey, bucketName, metadata);
 
-        const indexFacesCommand = new IndexFacesCommand({
-          CollectionId: rekognitionCollectionId,
-          Image: {
-            Bytes: jpegBuffer,
-          },
-          MaxFaces: 1,
-        });
+        const faceIds = await findFaceInImage(jpegBuffer);
 
-        console.log(
-          `executing face indexing command for ${newKey} in collection_id ${rekognitionCollectionId}`
-        );
-        const rekognitionResponse = await rekognitionClient.send(
-          indexFacesCommand
-        );
-
-        return await Promise.all(
-          rekognitionResponse?.FaceRecords?.map(async (faceRecord) => {
-            const { Face } = faceRecord;
-            const { FaceId } = Face;
-
+        await Promise.all(
+          faceIds.map((rekognitionId) => {
             console.log(
-              `creating dynamidb record for faceId ${FaceId} for user ${metadata.name} and s3 path ${newKey}`
+              `creating dynamidb record for faceId ${rekognitionId} for user ${personId} and s3 path ${newKey}`
             );
-            return executeGraphqlFunction(metadata.name, newKey, FaceId);
-          }) ?? []
+            return executeGraphqlFunction(personId, newKey, rekognitionId);
+          })
         );
-      } catch (e) {
-        console.error('Unable to convert to JPEG', e);
-        throw e;
-      }
-    })
-  );
 
-  const statusCode = 200;
+        return Promise.resolve({ s3path: newKey, rekognitionId, personId });
+      })
+    );
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: error,
+    };
+  }
+
   return {
-    statusCode,
-    body: JSON.stringify(event),
+    statusCode: 200,
+    body: JSON.stringify(responses),
   };
 };
 

@@ -1,25 +1,8 @@
-type Mutation {
-  createOrUpdateVpnInstance(vpnStateDetails: VpnInstanceInput!): VpnInstance!
-    @aws_iam
-  startVpnInstance(instanceId: ID!): Boolean @aws_cognito_user_pools
-  stopVpnInstance(instanceId: ID!): Boolean @aws_cognito_user_pools
-
-  createFaceBaseRecognition(
-    baseRecognitionDetails: BaseFaceRekognitionInput!
-  ): BaseFaceRekognition! @aws_iam
-}
-
 type Query {
   getVpnInstances: [VpnInstance]
-  getFaceBaseRekognitions: [BaseFaceRekognition]
-}
-
-type Subscription {
-  vpnInstanceUpdated: VpnInstance
-    @aws_subscribe(mutations: ["createOrUpdateVpnInstance"])
-
-  baseFaceRekognitionUpdated: BaseFaceRekognition
-    @aws_subscribe(mutations: ["createFaceBaseRecognition"])
+  #   photos
+  getFaceBaseRekognitionsForPerson(personId: ID!): Person
+  getPerson(id: ID!): Person
 }
 
 type VpnInstance @aws_iam @aws_cognito_user_pools {
@@ -27,11 +10,45 @@ type VpnInstance @aws_iam @aws_cognito_user_pools {
   instanceState: String!
 }
 
-type BaseFaceRekognition @aws_iam @aws_cognito_user_pools {
-  rekognitionId: ID!
-  name: String!
+# Photos
+type Person @aws_iam @aws_cognito_user_pools {
+  id: ID!
+  firstName: String
+  lastName: String
+  createdAt: AWSDateTime!
+  baseFaceRekognitions: [BaseFaceRekognition]
+}
+
+type UploadedPhoto @aws_iam {
+  id: ID!
   s3Path: String!
   createdAt: AWSDateTime!
+  recognizedPeople: [Person]
+}
+
+type BaseFaceRekognition @aws_iam @aws_cognito_user_pools {
+  rekognitionId: ID!
+  s3Path: String!
+  createdAt: AWSDateTime!
+}
+
+type Mutation {
+  createOrUpdateVpnInstance(vpnStateDetails: VpnInstanceInput!): VpnInstance!
+    @aws_iam
+  startVpnInstance(instanceId: ID!): Boolean @aws_cognito_user_pools
+  stopVpnInstance(instanceId: ID!): Boolean @aws_cognito_user_pools
+  # photos
+  createPerson(personDetails: PersonInput!): Person @aws_cognito_user_pools
+  createFaceBaseRecognition(
+    baseRecognitionDetails: BaseFaceRekognitionInput!
+  ): BaseFaceRekognition! @aws_iam
+}
+
+# inputs
+input BaseFaceRekognitionInput {
+  rekognitionId: ID!
+  personId: ID!
+  s3Path: String!
 }
 
 # INPUTS
@@ -40,10 +57,16 @@ input VpnInstanceInput {
   instanceState: String!
 }
 
-input BaseFaceRekognitionInput {
-  rekognitionId: ID!
-  name: String!
-  s3Path: String!
+input PersonInput {
+  firstName: String
+  lastName: String
+}
+
+type Subscription {
+  vpnInstanceUpdated: VpnInstance
+    @aws_subscribe(mutations: ["createOrUpdateVpnInstance"])
+  baseFaceRekognitionUpdated: BaseFaceRekognition
+    @aws_subscribe(mutations: ["createFaceBaseRecognition"])
 }
 
 schema {

@@ -1,4 +1,4 @@
-service: serverless-aws-vpn-solution
+service: serverless-aws-solution
 frameworkVersion: '3'
 
 custom:
@@ -7,27 +7,27 @@ custom:
   vpnStatelambdaFunctionName: syncVpnState
   startAndStopVpnInstanceLambdaFunctionName: startAndStopVpnInstance
 
-  cognitoUserPoolName: vpn-user-pool
-  mobileUserPoolClient: vpn-user-pool-client-mobile
+  cognitoUserPoolName: vpn-user-pool-${self:provider.stage}
+  mobileUserPoolClient: vpn-user-pool-client-mobile-${self:provider.stage}
 
-  appSyncLambdaRole: app-sync-execute-lambda
+  appSyncLambdaRole: app-sync-execute-lambda-${self:provider.stage}
 
-  adminIAMRoleName: vpn-admin-group-role
-  customerIAMRoleName: vpn-customer-group-role
+  adminIAMRoleName: vpn-admin-group-role-${self:provider.stage}
+  customerIAMRoleName: vpn-customer-group-role-${self:provider.stage}
 
-  adminIAMRolePolicyName: vpn-admin-group-role-policy
-  customerIAMRolePolicyName: vpn-customer-group-role-policy
+  adminIAMRolePolicyName: vpn-admin-group-role-policy-${self:provider.stage}
+  customerIAMRolePolicyName: vpn-customer-group-role-policy-${self:provider.stage}
 
-  vpnStateTableName: vpn-table-${self:provider.stage}
+  vpnStateTableName: vpn-table-${self:provider.stage}-${self:provider.stage}
   awsSyncGraphqlEndpoint: !GetAtt GraphQlApi.GraphQLUrl
 
   # face rekognition
   ## lambda
-  photoProcessorLambdaName: photoProcessorOnUpload
-  basePhotoProcessorLambdaName: baseProcessorOnUpload
+  photoProcessorLambdaName: photoProcessorOnUpload-${self:provider.stage}
+  basePhotoProcessorLambdaName: baseProcessorOnUpload-${self:provider.stage}
 
   ## s3
-  s3PhotosBucket: 'krasovsky-family-photos'
+  s3PhotosBucket: 'krasovsky-family-photos-${self:provider.stage}'
   baseUploadFolder: 'baseUploads'
   baseProcessedFolder: 'baseProcessed'
 
@@ -35,11 +35,10 @@ custom:
   processedPhotosFolder: 'photoUploadsProcessed'
 
   ## rekognition
-  rekognitionCollectionId: 'family-rekognition-collection'
+  rekognitionCollectionId: 'family-rekognition-collection-${self:provider.stage}'
 
   ## dynamo db
-  faceRekognitionBaseTableName: face-rekognition-base-table-${self:provider.stage}
-  faceRekognitionBasePrimaryKey: rekognitionId
+  photosTable: family-photoes-${self:provider.stage}
 
   dynamodb:
     stages:
@@ -48,7 +47,7 @@ custom:
       migrate: true
 
 appSync:
-  name: vpn-appsync-api-${self:provider.stage}
+  name: appsync-api-${self:provider.stage}
   authentication:
     type: AMAZON_COGNITO_USER_POOLS
     config:
@@ -65,12 +64,12 @@ appSync:
       functions:
         - scanVpnTable
 
-    getFaceBaseRekognitions:
-      dataSource: BaseFaceRekognitionTable
+    getFaceBaseRekognitionsForPerson:
+      dataSource: photosTable
       type: Query
-      field: getFaceBaseRekognitions
+      field: getFaceBaseRekognitionsForPerson
       functions:
-        - scanFaceBaseRekognitionsTable
+        - getFaceBaseRekognitionsForPerson
 
     # mutations
     createOrUpdateVpnInstance:
@@ -81,11 +80,18 @@ appSync:
         - putVpnInstance
 
     createFaceBaseRecognition:
-      dataSource: BaseFaceRekognitionTable
+      dataSource: photosTable
       type: Mutation
       field: createFaceBaseRecognition
       functions:
-        - putFaceBaseRekognition
+        - createFaceBaseRecognition
+
+    createPerson:
+      dataSource: photosTable
+      type: Mutation
+      field: createPerson
+      functions:
+        - createPersonFunction
 
     startVpnInstance:
       dataSource: AwsLambda
@@ -107,18 +113,22 @@ appSync:
       dataSource: VpnTable
       code: resolvers/vpnInstances/getVpnInstances.js
 
-    scanFaceBaseRekognitionsTable:
-      dataSource: BaseFaceRekognitionTable
-      code: resolvers/baseFaceRekognitions/getFaceBaseRekognitions.js
+    getFaceBaseRekognitionsForPerson:
+      dataSource: photosTable
+      code: resolvers/photos/getFaceBaseRekognitionsForPerson.js
 
     # MUTATIONS
     putVpnInstance:
       dataSource: VpnTable
       code: resolvers/vpnInstances/putVpnInstance.js
 
-    putFaceBaseRekognition:
-      dataSource: BaseFaceRekognitionTable
-      code: resolvers/baseFaceRekognitions/putFaceBaseRekognition.js
+    createPersonFunction:
+      dataSource: photosTable
+      code: resolvers/photos/createPerson.js
+
+    createFaceBaseRecognition:
+      dataSource: photosTable
+      code: resolvers/photos/createFaceBaseRekognition.js
 
     startOrStopVpnInstance:
       dataSource: AwsLambda
@@ -130,10 +140,10 @@ appSync:
       config:
         tableName: !Ref VpnTable
 
-    BaseFaceRekognitionTable:
+    photosTable:
       type: AMAZON_DYNAMODB
       config:
-        tableName: !Ref BaseFaceRekognitionTable
+        tableName: !Ref photosTable
 
     AwsLambda:
       type: AWS_LAMBDA
@@ -214,7 +224,8 @@ functions:
           event: s3:ObjectCreated:*
           rules:
             - prefix: !Sub '${self:custom.baseUploadFolder}/'
-          existing: true
+          # existing: true
+          # forceDeploy: true
     iamRoleStatements:
       # publish to amazon rekognition
       - Effect: Allow
@@ -256,7 +267,8 @@ functions:
           event: s3:ObjectCreated:*
           rules:
             - prefix: !Sub '${self:custom.photoUploadFolder}/'
-          existing: true
+          # existing: true
+          # forceDeploy: true
     iamRoleStatements:
       # publish to amazon rekognition
       - Effect: Allow
@@ -292,17 +304,21 @@ functions:
 resources:
   Resources:
     # DYNAMO DB
-    BaseFaceRekognitionTable:
+    photosTable:
       Type: AWS::DynamoDB::Table
       Properties:
         AttributeDefinitions:
-          - AttributeName: ${self:custom.faceRekognitionBasePrimaryKey}
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
             AttributeType: S
         KeySchema:
-          - AttributeName: ${self:custom.faceRekognitionBasePrimaryKey}
+          - AttributeName: PK
             KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
-        TableName: ${self:custom.faceRekognitionBaseTableName}
+        TableName: ${self:custom.photosTable}
 
     VpnTable:
       Type: AWS::DynamoDB::Table
