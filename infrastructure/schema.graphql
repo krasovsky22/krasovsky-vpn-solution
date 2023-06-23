@@ -29,6 +29,7 @@ type UploadedPhoto @aws_iam {
 type BaseFaceRekognition @aws_iam @aws_cognito_user_pools {
   rekognitionId: ID!
   s3Path: String!
+  personId: String!
   createdAt: AWSDateTime!
 }
 
@@ -47,7 +48,7 @@ type Mutation {
 # inputs
 input BaseFaceRekognitionInput {
   rekognitionId: ID!
-  personId: ID!
+  personId: String!
   s3Path: String!
 }
 

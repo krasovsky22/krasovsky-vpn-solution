@@ -96,6 +96,10 @@ const executeGraphqlFunction = async (personId, s3Path, rekognitionId) => {
     },
   };
 
+  console.log(
+    `Executing graphql query createFaceBaseRecognition with variables - ${variables}`
+  );
+
   const endpoint = new URL(GRAPHQL_ENDPOINT);
 
   const signer = new SignatureV4({
@@ -119,34 +123,18 @@ const executeGraphqlFunction = async (personId, s3Path, rekognitionId) => {
   const signed = await signer.sign(requestToBeSigned);
   const request = new fetch.Request(GRAPHQL_ENDPOINT, signed);
 
-  let statusCode = 200;
-  let body;
-  let response;
-
   try {
-    response = await fetch(request);
-    body = await response.json();
-    if (body.errors) statusCode = 400;
+    const response = await fetch(request);
+    const { data, errors } = await response.json();
+
+    return data ?? errors;
   } catch (error) {
-    statusCode = 500;
-    body = {
-      errors: [
-        {
-          message: error.message,
-        },
-      ],
-    };
+    console.error(
+      'Error while executing dynamodb insert though appsync. ' + error
+    );
+
+    return error;
   }
-
-  console.log({
-    statusCode,
-    body: JSON.stringify(body),
-  });
-
-  return {
-    statusCode,
-    body: JSON.stringify(body),
-  };
 };
 
 const convertHeicToJpeg = async (heicBuffer) => {
@@ -177,7 +165,7 @@ const findFaceInImage = async (jpegBuffer) => {
   });
 
   console.log(
-    `executing face indexing command for ${newKey} in collection_id ${REKOGNITION_COLLECTION_ID}`
+    `executing face indexing command in collection_id ${REKOGNITION_COLLECTION_ID}`
   );
   const rekognitionResponse = await rekognitionClient.send(indexFacesCommand);
 
@@ -187,8 +175,9 @@ const findFaceInImage = async (jpegBuffer) => {
 };
 
 const handler = async (event) => {
+  let responses = [];
   try {
-    const responses = await Promise.all(
+    responses = await Promise.all(
       (event?.Records ?? []).map(async (record) => {
         const { s3 } = record;
 
@@ -203,8 +192,8 @@ const handler = async (event) => {
           bucketName
         );
 
-        if (!metadata?.personId) {
-          const error = `Incorrect metadata for uploaded file ${objectName} - ${bucketName}. personId is required.`;
+        if (!metadata?.person_id) {
+          const error = `Incorrect metadata for uploaded file ${objectName} - ${bucketName}. person_id is required.`;
           console.error(error);
           return Promise.rejeect(errors);
         }
@@ -220,8 +209,7 @@ const handler = async (event) => {
         await putImageBufferToS3(jpegBuffer, newKey, bucketName, metadata);
 
         const faceIds = await findFaceInImage(jpegBuffer);
-
-        await Promise.all(
+        return await Promise.all(
           faceIds.map((rekognitionId) => {
             console.log(
               `creating dynamidb record for faceId ${rekognitionId} for user ${personId} and s3 path ${newKey}`
@@ -229,23 +217,20 @@ const handler = async (event) => {
             return executeGraphqlFunction(personId, newKey, rekognitionId);
           })
         );
-
-        return Promise.resolve({ s3path: newKey, rekognitionId, personId });
       })
     );
   } catch (error) {
+    console.ERROR('ERROR', error);
     return {
       statusCode: 500,
-      body: error,
+      body: JSON.stringify(error, null, 2),
     };
   }
 
   return {
     statusCode: 200,
-    body: JSON.stringify(responses),
+    body: responses.flat(),
   };
 };
 
-module.exports = {
-  handler,
-};
+

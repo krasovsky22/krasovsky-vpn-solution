@@ -20,14 +20,14 @@
         "s3SchemaVersion": "1.0",
         "configurationId": "800e3a2a-541f-4a01-9878-bada1dc06508",
         "bucket": {
-          "name": "krasovsky-family-photos",
+          "name": "krasovsky-family-photos-dev",
           "ownerIdentity": {
             "principalId": "A1XJTXDSST2T9S"
           },
-          "arn": "arn:aws:s3:::krasovsky-family-photos"
+          "arn": "arn:aws:s3:::krasovsky-family-photos-dev"
         },
         "object": {
-          "key": "uploads/IMG_0275.HEIC",
+          "key": "baseUploads/mia.HEIC",
           "size": 59943,
           "eTag": "d60c2b4c73f655c7faafba3f82a030a3",
           "sequencer": "0064905EFB32F0057B"
