@@ -209,7 +209,7 @@ const handler = async (event) => {
           return Promise.rejeect(errors);
         }
 
-        const { personId } = metadata;
+        const { person_id: personId } = metadata;
         const jpegFileName = generateJpegFileName(objectName);
         const newKey = `${BASE_PROCESSED_FOLDER}/${jpegFileName}`;
 
