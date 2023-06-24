@@ -1,0 +1,285 @@
+{
+  "service": {
+    "service": "serverless-aws-auth-solution",
+    "serviceObject": {
+      "name": "serverless-aws-auth-solution"
+    },
+    "provider": {
+      "name": "aws",
+      "stage": "dev",
+      "region": "us-west-1",
+      "projectName": "serverless",
+      "versionFunctions": true,
+      "compiledCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "The AWS CloudFormation template for this Serverless application",
+        "Resources": {
+          "ServerlessDeploymentBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+              "BucketEncryption": {
+                "ServerSideEncryptionConfiguration": [
+                  {
+                    "ServerSideEncryptionByDefault": {
+                      "SSEAlgorithm": "AES256"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "ServerlessDeploymentBucketPolicy": {
+            "Type": "AWS::S3::BucketPolicy",
+            "Properties": {
+              "Bucket": {
+                "Ref": "ServerlessDeploymentBucket"
+              },
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": "s3:*",
+                    "Effect": "Deny",
+                    "Principal": "*",
+                    "Resource": [
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            },
+                            "/*"
+                          ]
+                        ]
+                      },
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            }
+                          ]
+                        ]
+                      }
+                    ],
+                    "Condition": {
+                      "Bool": {
+                        "aws:SecureTransport": false
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "CognitoUserPool": {
+            "Type": "AWS::Cognito::UserPool",
+            "Properties": {
+              "UserPoolName": "serverless-user-pool-dev",
+              "UsernameAttributes": [
+                "email"
+              ]
+            }
+          },
+          "CognitoUserPoolClient": {
+            "Type": "AWS::Cognito::UserPoolClient",
+            "Properties": {
+              "ClientName": "serverless-user-pool-client-mobile-dev",
+              "UserPoolId": {
+                "Ref": "CognitoUserPool"
+              }
+            }
+          },
+          "CognitoUserGroup": {
+            "Type": "AWS::Cognito::UserPoolGroup",
+            "Properties": {
+              "Description": "Initial Users",
+              "GroupName": "USER",
+              "Precedence": 1,
+              "UserPoolId": {
+                "Ref": "CognitoUserPool"
+              }
+            }
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": {
+              "Ref": "ServerlessDeploymentBucket"
+            },
+            "Export": {
+              "Name": "sls-serverless-aws-auth-solution-dev-ServerlessDeploymentBucketName"
+            }
+          },
+          "AwsCognitoUserPoolId": {
+            "Description": "Cognito User Pool Id",
+            "Value": {
+              "Ref": "CognitoUserPool"
+            }
+          }
+        }
+      },
+      "coreCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "The AWS CloudFormation template for this Serverless application",
+        "Resources": {
+          "ServerlessDeploymentBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+              "BucketEncryption": {
+                "ServerSideEncryptionConfiguration": [
+                  {
+                    "ServerSideEncryptionByDefault": {
+                      "SSEAlgorithm": "AES256"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "ServerlessDeploymentBucketPolicy": {
+            "Type": "AWS::S3::BucketPolicy",
+            "Properties": {
+              "Bucket": {
+                "Ref": "ServerlessDeploymentBucket"
+              },
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": "s3:*",
+                    "Effect": "Deny",
+                    "Principal": "*",
+                    "Resource": [
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            },
+                            "/*"
+                          ]
+                        ]
+                      },
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            }
+                          ]
+                        ]
+                      }
+                    ],
+                    "Condition": {
+                      "Bool": {
+                        "aws:SecureTransport": false
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": {
+              "Ref": "ServerlessDeploymentBucket"
+            }
+          }
+        }
+      }
+    },
+    "custom": {
+      "cognitoUserPoolName": "serverless-user-pool-dev",
+      "mobileUserPoolClient": "serverless-user-pool-client-mobile-dev"
+    },
+    "pluginsData": {},
+    "functions": {},
+    "resources": {
+      "Resources": {
+        "CognitoUserPool": {
+          "Type": "AWS::Cognito::UserPool",
+          "Properties": {
+            "UserPoolName": "serverless-user-pool-dev",
+            "UsernameAttributes": [
+              "email"
+            ]
+          }
+        },
+        "CognitoUserPoolClient": {
+          "Type": "AWS::Cognito::UserPoolClient",
+          "Properties": {
+            "ClientName": "serverless-user-pool-client-mobile-dev",
+            "UserPoolId": {
+              "Ref": "CognitoUserPool"
+            }
+          }
+        },
+        "CognitoUserGroup": {
+          "Type": "AWS::Cognito::UserPoolGroup",
+          "Properties": {
+            "Description": "Initial Users",
+            "GroupName": "USER",
+            "Precedence": 1,
+            "UserPoolId": {
+              "Ref": "CognitoUserPool"
+            }
+          }
+        }
+      },
+      "Outputs": {
+        "AwsCognitoUserPoolId": {
+          "Description": "Cognito User Pool Id",
+          "Value": {
+            "Ref": "CognitoUserPool"
+          }
+        }
+      }
+    },
+    "configValidationMode": "warn",
+    "serviceFilename": "serverless.yml",
+    "initialServerlessConfig": {
+      "service": "serverless-aws-auth-solution",
+      "frameworkVersion": "3",
+      "provider": {
+        "$ref": "$[\"service\"][\"provider\"]"
+      },
+      "custom": {
+        "$ref": "$[\"service\"][\"custom\"]"
+      },
+      "resources": {
+        "$ref": "$[\"service\"][\"resources\"]"
+      }
+    },
+    "layers": {},
+    "isDashboardMonitoringPreconfigured": false
+  },
+  "package": {
+    "artifactDirectoryName": "serverless/serverless-aws-auth-solution/dev/1687597426666-2023-06-24T09:03:46.666Z",
+    "artifact": ""
+  }
+}

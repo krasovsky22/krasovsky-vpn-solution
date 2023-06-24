@@ -1,0 +1,15 @@
+services:
+  authService:
+    path: auth-solution
+
+  vpnService:
+    path: vpn-solution
+    dependsOn: authService
+    params:
+      AwsCognitoUserPoolId: ${authService.AwsCognitoUserPoolId}
+
+  photosService:
+    path: photos-solution
+    dependsOn: authService
+    params:
+      AwsCognitoUserPoolId: ${authService.AwsCognitoUserPoolId}

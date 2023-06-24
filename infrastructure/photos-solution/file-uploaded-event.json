@@ -1,0 +1,38 @@
+{
+  "Records": [
+    {
+      "eventVersion": "2.1",
+      "eventSource": "aws:s3",
+      "awsRegion": "us-west-1",
+      "eventTime": "2023-06-19T13:58:19.269Z",
+      "eventName": "ObjectCreated:Put",
+      "userIdentity": {
+        "principalId": "AWS:AIDAY77CFFTM2JSX7ENNF"
+      },
+      "requestParameters": {
+        "sourceIPAddress": "112.206.99.58"
+      },
+      "responseElements": {
+        "x-amz-request-id": "NEAPF8YYFHZSSWZK",
+        "x-amz-id-2": "mkADMimaVlPHpuSBodFfYv9O8kG67WBItGudiBPjp9Kx3QgjdLJbqWWYL0cyQm2HqIi7ynUyuMtl3be7Ivm7tmq2bVOSeaDa"
+      },
+      "s3": {
+        "s3SchemaVersion": "1.0",
+        "configurationId": "800e3a2a-541f-4a01-9878-bada1dc06508",
+        "bucket": {
+          "name": "krasovsky-family-photos-dev",
+          "ownerIdentity": {
+            "principalId": "A1XJTXDSST2T9S"
+          },
+          "arn": "arn:aws:s3:::krasovsky-family-photos-dev"
+        },
+        "object": {
+          "key": "baseUploads/mia.HEIC",
+          "size": 59943,
+          "eTag": "d60c2b4c73f655c7faafba3f82a030a3",
+          "sequencer": "0064905EFB32F0057B"
+        }
+      }
+    }
+  ]
+}

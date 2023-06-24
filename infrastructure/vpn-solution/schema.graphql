@@ -1,0 +1,33 @@
+type Query {
+  getVpnInstances: [VpnInstance]
+}
+
+type VpnInstance @aws_iam @aws_cognito_user_pools {
+  instanceId: ID!
+  instanceState: String!
+  createdAt: AWSDateTime!
+}
+
+type Mutation {
+  createOrUpdateVpnInstance(vpnStateDetails: VpnInstanceInput!): VpnInstance!
+    @aws_iam
+  startVpnInstance(instanceId: ID!): Boolean @aws_cognito_user_pools
+  stopVpnInstance(instanceId: ID!): Boolean @aws_cognito_user_pools
+}
+
+# INPUTS
+input VpnInstanceInput {
+  instanceId: String!
+  instanceState: String!
+}
+
+type Subscription {
+  vpnInstanceUpdated: VpnInstance
+    @aws_subscribe(mutations: ["createOrUpdateVpnInstance"])
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}

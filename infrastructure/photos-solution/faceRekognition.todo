@@ -1,0 +1,20 @@
+
+- steps:
+    - base image file is uploaded into s3 bucket /baseImagesUploads with metadata Name = personName
+    - event triggered to lambda function
+    - lambda function calls rekognition API to create rekognition id
+    - file getting moved into /baseImages folder
+    - rekogninion_id is getting stored in dynamo db talbe
+
+- action items
+    - create dynamo db table to keep base images rekognition ids
+    - create AppSync graphql mutation to insert rekognized image
+    - create lambda function to process base image
+
+- image recognition process
+    - convert heic into jpeg
+    - store jpeg in s3
+    - run detect faces from jpeg
+    - crop all the faces from jpeg
+    - search cropped faces through rekognition collection
+    - store rekognized faced in dynamo

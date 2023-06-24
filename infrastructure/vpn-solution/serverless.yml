@@ -1,0 +1,225 @@
+service: serverless-aws-vpn-solution
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  stage: dev
+  region: us-west-1
+  runtime: nodejs18.x
+  projectName: serverless
+  environment:
+    GRAPHQL_AWS_REGION: ${self:provider.region}
+    GRAPHQL_ENDPOINT: !GetAtt GraphQlApi.GraphQLUrl
+    # GRAPHQL_ENDPOINT: 'https://lumhaa7sgfha5bj7agdek23n6q.appsync-api.us-west-1.amazonaws.com/graphql'
+
+custom:
+  appSyncName: ${self:provider.projectName}-vpn-solution-${self:provider.stage}
+
+  # lambda functions
+  vpnStatelambdaFunctionName: ${self:provider.projectName}-syncVpnState-${self:provider.stage}
+  startAndStopVpnInstanceLambdaFunctionName: ${self:provider.projectName}-startAndStopVpnInstance-${self:provider.stage}
+
+  # role for appsync to  execute lambda
+  appSyncLambdaRole: ${self:provider.projectName}-vpnAppSyncExecuteLambda-${self:provider.stage}
+
+  # cognito role to execute dynamo db requests
+  customerIAMRoleName: ${self:provider.projectName}-vpnCustomerGroupRole-${self:provider.stage}
+  customerIAMRolePolicyName: ${self:provider.projectName}-vpnCustomerGroupRolePolicy-${self:provider.stage}
+
+  vpnStateTableName: ${self:provider.projectName}-vpn-table-${self:provider.stage}
+  
+
+appSync:
+  name: ${self:custom.appSyncName}
+  authentication:
+    type: AMAZON_COGNITO_USER_POOLS
+    config:
+      userPoolId: ${param:AwsCognitoUserPoolId}
+  additionalAuthentications:
+    - type: AWS_IAM
+
+  resolvers:
+    # queries
+    getVpnInstances:
+      dataSource: VpnTable
+      type: Query
+      field: getVpnInstances
+      functions:
+        - scanVpnTable
+
+    # mutations
+    createOrUpdateVpnInstance:
+      dataSource: VpnTable
+      type: Mutation
+      field: createOrUpdateVpnInstance
+      functions:
+        - putVpnInstance
+
+    startVpnInstance:
+      dataSource: AwsLambda
+      type: Mutation
+      field: startVpnInstance
+      functions:
+        - startOrStopVpnInstance
+
+    stopVpnInstance:
+      dataSource: AwsLambda
+      type: Mutation
+      field: stopVpnInstance
+      functions:
+        - startOrStopVpnInstance
+
+  pipelineFunctions:
+    # SCAN
+    scanVpnTable:
+      dataSource: VpnTable
+      code: resolvers/getVpnInstances.js
+
+    # MUTATIONS
+    putVpnInstance:
+      dataSource: VpnTable
+      code: resolvers/putVpnInstance.js
+    startOrStopVpnInstance:
+      dataSource: AwsLambda
+      code: resolvers/startOrStopVpnInstance.js
+
+  dataSources:
+    VpnTable:
+      type: AMAZON_DYNAMODB
+      config:
+        tableName: !Ref VpnTable
+
+    AwsLambda:
+      type: AWS_LAMBDA
+      config:
+        functionArn:
+          { Fn::GetAtt: [StartAndStopVpnInstanceLambdaFunction, Arn] }
+        serviceRoleArn: { Fn::GetAtt: [AppSyncExecuteLambdaRole, Arn] }
+
+plugins:
+  - serverless-offline
+  - serverless-appsync-plugin
+  - serverless-dynamodb-local
+  - serverless-iam-roles-per-function
+
+functions:
+  syncVpnState:
+    name: ${self:custom.vpnStatelambdaFunctionName}
+    handler: lambdaSyncVpnState.handler
+    events:
+      - cloudwatchEvent:
+          name: 'vpn-service-cloudwatch-event-on-ec2-instance-state-change'
+          description: 'CloudWatch Event triggered on EC2 Instance pending state'
+          event:
+            source:
+              - 'aws.ec2'
+            detail-type:
+              - 'EC2 Instance State-change Notification'
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - appsync:GraphQL
+        Resource:
+          - {
+              Fn::Join:
+                [
+                  '',
+                  [
+                    { Ref: GraphQlApi },
+                    '/types/Mutation/fields/createOrUpdateVpnInstance',
+                  ],
+                ],
+            }
+
+  startAndStopVpnInstance:
+    name: ${self:custom.startAndStopVpnInstanceLambdaFunctionName}
+    handler: lambdaStartAndStopVpnInstance.handler
+    iamRoleStatementsName: 'lambda-start-stop-ec2'
+    iamRoleStatements:
+      - Effect: Allow
+        Resource:
+          - !Sub 'arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*'
+        Action:
+          - 'ec2:Start*'
+          - 'ec2:Stop*'
+
+resources:
+  Resources:
+    VpnTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.vpnStateTableName}
+
+    CognitoVpnGroup:
+      Type: AWS::Cognito::UserPoolGroup
+      Properties:
+        Description: 'vpn users belongs to this group'
+        GroupName: 'VPN_USER'
+        Precedence: 2
+        RoleArn:
+          Fn::GetAtt: [CognitoUserIAMRole, Arn]
+        UserPoolId: ${param:AwsCognitoUserPoolId}
+
+    # Role to execute lambda function
+    AppSyncExecuteLambdaRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:custom.appSyncLambdaRole}
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            Effect: Allow
+            Principal:
+              Service:
+                - 'appsync.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+        Description: 'App Sync Policy to execute lambda'
+        Policies:
+          - PolicyName: awssync-invoke-lambda-policy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 'lambda:InvokeFunction'
+                    - 'lambda:InvokeAsync'
+                  Resource:
+                    - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${self:custom.startAndStopVpnInstanceLambdaFunctionName}'
+
+    # Role to execute dynamodb actions
+    CognitoUserIAMRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:custom.customerIAMRoleName}
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            Effect: Allow
+            Principal:
+              Federated:
+                - 'cognito-identity-amazonaws.com'
+            Action:
+              - 'sts:AssumeRoleWithWebIdentity'
+        Description: 'VPN Customer Group Policy'
+        Policies:
+          - PolicyName: ${self:custom.customerIAMRolePolicyName}
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 'dynamodb:*'
+                  Resource:
+                    Fn::GetAtt: [VpnTable, Arn]

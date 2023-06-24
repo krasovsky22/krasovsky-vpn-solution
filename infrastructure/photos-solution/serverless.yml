@@ -1,0 +1,251 @@
+service: serverless-aws-photos-solution
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  stage: dev
+  region: us-west-1
+  runtime: nodejs18.x
+  projectName: serverless
+  environment:
+    GRAPHQL_AWS_REGION: ${self:provider.region}
+    GRAPHQL_ENDPOINT: !GetAtt GraphQlApi.GraphQLUrl
+    PHOTOS_S3_BUCKET: ${self:custom.s3PhotosBucket}
+    PROCESSED_FOLDER: ${self:custom.processedPhotosFolder}
+    BASE_PROCESSED_FOLDER: ${self:custom.baseProcessedFolder}
+    REKOGNITION_COLLECTION_ID: ${self:custom.rekognitionCollectionId}
+
+custom:
+  appSyncName: ${self:provider.projectName}-familyPhotos-${self:provider.stage}
+
+  photosGroupIamRoleName: ${self:provider.projectName}-photosCustomerGroupRole-${self:provider.stage}
+
+  ## lambda
+  photoProcessorLambdaName: ${self:provider.projectName}-photoOnUpload-${self:provider.stage}
+  basePhotoProcessorLambdaName: ${self:provider.projectName}-baseOnUpload-${self:provider.stage}
+
+  ## s3
+  s3PhotosBucket: '${self:provider.projectName}-krasovsky-family-photos-${self:provider.stage}'
+
+  ## folder on s3
+  baseUploadFolder: 'baseUploads'
+  baseProcessedFolder: 'baseProcessed'
+  photoUploadFolder: 'photoUploads'
+  processedPhotosFolder: 'photoUploadsProcessed'
+
+  ## rekognition
+  rekognitionCollectionId: '${self:provider.projectName}-family-rekognition-collection-${self:provider.stage}'
+
+  ## dynamo db
+  photosTable: ${self:provider.projectName}-familyPhotos-${self:provider.stage}
+
+appSync:
+  name: ${self:custom.appSyncName}
+  authentication:
+    type: AMAZON_COGNITO_USER_POOLS
+    config:
+      userPoolId: ${param:AwsCognitoUserPoolId}
+  additionalAuthentications:
+    - type: AWS_IAM
+
+  resolvers:
+    # queries
+    getFaceBaseRekognitionsForPerson:
+      dataSource: photosTable
+      type: Query
+      field: getFaceBaseRekognitionsForPerson
+      functions:
+        - getFaceBaseRekognitionsForPerson
+
+    # mutations
+    createFaceBaseRecognition:
+      dataSource: photosTable
+      type: Mutation
+      field: createFaceBaseRecognition
+      functions:
+        - createFaceBaseRecognition
+
+    createPerson:
+      dataSource: photosTable
+      type: Mutation
+      field: createPerson
+      functions:
+        - createPersonFunction
+
+  pipelineFunctions:
+    getFaceBaseRekognitionsForPerson:
+      dataSource: photosTable
+      code: resolvers/getFaceBaseRekognitionsForPerson.js
+
+    # MUTATIONS
+
+    createPersonFunction:
+      dataSource: photosTable
+      code: resolvers/createPerson.js
+
+    createFaceBaseRecognition:
+      dataSource: photosTable
+      code: resolvers/createFaceBaseRekognition.js
+
+  dataSources:
+    photosTable:
+      type: AMAZON_DYNAMODB
+      config:
+        tableName: !Ref photosTable
+
+plugins:
+  - serverless-offline
+  - serverless-export-env
+  - serverless-appsync-plugin
+  - serverless-dynamodb-local
+  - serverless-iam-roles-per-function
+
+functions:
+  processBasePhoto:
+    name: ${self:custom.basePhotoProcessorLambdaName}
+    handler: lambdaProcessUploadedBasePhoto.handler
+    timeout: 60
+    events:
+      - s3:
+          bucket: ${self:custom.s3PhotosBucket}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: !Sub '${self:custom.baseUploadFolder}/'
+          # existing: true
+          # forceDeploy: true
+    iamRoleStatementsName: 'processBasePhotoStatements'
+    iamRoleStatements:
+      # publish to amazon rekognition
+      - Effect: Allow
+        Action:
+          - rekognition:IndexFaces
+        Resource:
+          - { Fn::GetAtt: [FaceRekognitionCollection, Arn] }
+      # read/delete files from s3
+      - Effect: Allow
+        Action:
+          - 's3:GetObject'
+          - 's3:PutObject'
+          - 's3:DeleteObject'
+        Resource:
+          - !Sub 'arn:aws:s3:::${self:custom.s3PhotosBucket}/*'
+      # appSync Mutations
+      - Effect: Allow
+        Action:
+          - appsync:GraphQL
+        Resource:
+          - {
+              Fn::Join:
+                [
+                  '',
+                  [
+                    { Ref: GraphQlApi },
+                    '/types/Mutation/fields/createFaceBaseRecognition',
+                  ],
+                ],
+            }
+
+  processUploadedPhoto:
+    name: ${self:custom.photoProcessorLambdaName}
+    handler: lambdaProcessUploadedFamilyPhoto.handler
+    timeout: 60
+    events:
+      - s3:
+          bucket: ${self:custom.s3PhotosBucket}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: !Sub '${self:custom.photoUploadFolder}/'
+          # existing: true
+          # forceDeploy: true
+    iamRoleStatementsName: 'processUploadedPhotoStatements'
+    iamRoleStatements:
+      # publish to amazon rekognition
+      - Effect: Allow
+        Action:
+          - rekognition:DetectFaces
+          - rekognition:SearchFacesByImage
+        Resource:
+          - { Fn::GetAtt: [FaceRekognitionCollection, Arn] }
+      # read/delete files from s3
+      - Effect: Allow
+        Action:
+          - 's3:GetObject'
+          - 's3:PutObject'
+          - 's3:DeleteObject'
+        Resource:
+          - !Sub 'arn:aws:s3:::${self:custom.s3PhotosBucket}/*'
+      # appSync Mutations
+      # - Effect: Allow
+      #   Action:
+      #     - appsync:GraphQL
+      #   Resource:
+      #     - {
+      #         Fn::Join:
+      #           [
+      #             '',
+      #             [
+      #               { Ref: GraphQlApi },
+      #               '/types/Mutation/fields/createFaceBaseRecognition',
+      #             ],
+      #           ],
+      #       }
+
+resources:
+  Resources:
+    # DYNAMO DB
+    photosTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.photosTable}
+
+    # User Pool Groups
+    CognitoPhotosGroup:
+      Type: AWS::Cognito::UserPoolGroup
+      Properties:
+        Description: 'vpn users belongs to this group'
+        GroupName: 'PHOTOS_USER'
+        Precedence: 2
+        RoleArn:
+          Fn::GetAtt: [PhotosGroupIAMRole, Arn]
+        UserPoolId: ${param:AwsCognitoUserPoolId}
+
+    PhotosGroupIAMRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:custom.photosGroupIamRoleName}
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            Effect: Allow
+            Principal:
+              Federated:
+                - 'cognito-identity-amazonaws.com'
+            Action:
+              - 'sts:AssumeRoleWithWebIdentity'
+        Description: 'VPN Customer Group Policy'
+        Policies:
+          - PolicyName: ${self:custom.photosGroupIamRoleName}
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 'dynamodb:*'
+                  Resource:
+                    Fn::GetAtt: [photosTable, Arn]
+
+    FaceRekognitionCollection:
+      Type: AWS::Rekognition::Collection
+      Properties:
+        CollectionId: ${self:custom.rekognitionCollectionId}
