@@ -20,7 +20,7 @@
         "s3SchemaVersion": "1.0",
         "configurationId": "800e3a2a-541f-4a01-9878-bada1dc06508",
         "bucket": {
-          "name": "krasovsky-family-photos-dev",
+          "name": "serverless-krasovsky-family-photos-dev",
           "ownerIdentity": {
             "principalId": "A1XJTXDSST2T9S"
           },
