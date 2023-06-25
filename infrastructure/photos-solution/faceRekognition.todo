@@ -1,15 +1,10 @@
 
 - steps:
-    - base image file is uploaded into s3 bucket /baseImagesUploads with metadata Name = personName
-    - event triggered to lambda function
+    - base image file is uploaded into s3 bucket /baseImagesUploads with metadata personID (required)
+    - event triggeres lambda function
     - lambda function calls rekognition API to create rekognition id
     - file getting moved into /baseImages folder
-    - rekogninion_id is getting stored in dynamo db talbe
-
-- action items
-    - create dynamo db table to keep base images rekognition ids
-    - create AppSync graphql mutation to insert rekognized image
-    - create lambda function to process base image
+    - rekogninion_id is getting stored in dynamo db table
 
 - image recognition process
     - convert heic into jpeg
@@ -18,3 +13,12 @@
     - crop all the faces from jpeg
     - search cropped faces through rekognition collection
     - store rekognized faced in dynamo
+
+- action items
+    - Add Lambda to handle formats that currently unsuported
+        - move to unsupported folder for the future processings (/base-unsupported)
+        - initial files probably should be moved into /basePendingProcessing folder for processing
+    - Fix processing of uploaded photos
+
+- questions
+    - Should we store in dynamodb unsupported filed?
