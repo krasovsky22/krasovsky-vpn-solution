@@ -11,8 +11,15 @@ provider:
     GRAPHQL_AWS_REGION: ${self:provider.region}
     GRAPHQL_ENDPOINT: !GetAtt GraphQlApi.GraphQLUrl
     # GRAPHQL_ENDPOINT: https://eqlqnr7hnnatbmlaeduzirjwrq.appsync-api.us-west-1.amazonaws.com/graphql
+    UNSUPPPORTED_FOLDER: ${self:custom.unsupportedFolder}
+    HEIC_CONVERTER_FOLDER: ${self:custom.heicConverterFolder}
+    IMAGE_SORTING_FOLDER: ${self:custom.imageSortingFolder}
+
+    IMAGE_PROCESSING_FOLDER: ${self:custom.imageProcessingFolder}
+    IMAGE_BASE_PROCESSING_FOLDER: ${self:custom.imageBaseProcessingFolder}
+    
     PHOTOS_S3_BUCKET: ${self:custom.s3PhotosBucket}
-    PROCESSED_FOLDER: ${self:custom.processedPhotosFolder}
+    # PROCESSED_FOLDER: ${self:custom.processedPhotosFolder}
     BASE_PROCESSED_FOLDER: ${self:custom.baseProcessedFolder}
     REKOGNITION_COLLECTION_ID: ${self:custom.rekognitionCollectionId}
 
@@ -38,10 +45,25 @@ custom:
   s3PhotosBucket: '${env:PROJECT_NAME}-krasovsky-family-photos-${self:provider.stage}'
 
   ## folder on s3
-  baseUploadFolder: 'baseUploads'
+  uploadFolder: uploads
+  unsupportedFolder: unsupported
+  uploadFolderProcessorLambda: ${env:PROJECT_NAME}-photoUploadProcessor-${self:provider.stage}
+
+  heicConverterFolder: heicProcessing
+  heicImageLambda: ${env:PROJECT_NAME}-photoHeicImageConverter-${self:provider.stage}
+
+
+  imageSortingLambda: ${env:PROJECT_NAME}-imageSorting-${self:provider.stage}
+  imageSortingFolder: imageSorting
+  imageBaseProcessingFolder: baseImageProcessing
+  imageProcessingFolder: imageProcessing
+
+  baseImageProcessingLambda: ${env:PROJECT_NAME}-baseImageProcessing-${self:provider.stage}
+  baseImageProcessingFolder: 'baseImageProcessing'
   baseProcessedFolder: 'baseProcessed'
-  photoUploadFolder: 'photoUploads'
-  processedPhotosFolder: 'photoUploadsProcessed'
+
+  # photoUploadFolder: 'photoUploads'
+  # processedPhotosFolder: 'photoUploadsProcessed'
 
   ## rekognition
   rekognitionCollectionId: '${env:PROJECT_NAME}-family-rekognition-collection-${self:provider.stage}'
@@ -113,16 +135,81 @@ plugins:
   - serverless-iam-roles-per-function
 
 functions:
-  processBasePhoto:
-    name: ${self:custom.basePhotoProcessorLambdaName}
-    handler: src/handlers/processUploadedBasePhoto.handler
+  # will check the format of a file , move it into heic processor/ jpeg processor or unsupported folders
+  processUploadedFile:
+    name: ${self:custom.uploadFolderProcessorLambda}
+    handler: src/handlers/processUploadedFile.handler
     timeout: 60
     events:
       - s3:
           bucket: ${self:custom.s3PhotosBucket}
           event: s3:ObjectCreated:*
           rules:
-            - prefix: !Sub '${self:custom.baseUploadFolder}/'
+            - prefix: !Sub '${self:custom.uploadFolder}/'
+    iamRoleStatementsName: 'uploadFolderProcessorStatements'
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - 's3:GetObject'
+          - 's3:PutObject'
+          - 's3:DeleteObject'
+        Resource:
+          - !Sub 'arn:aws:s3:::${self:custom.s3PhotosBucket}/*'
+
+  # will convert heic to jpg
+  heicImageConverter:
+    name: ${self:custom.heicImageLambda}
+    handler: src/handlers/heicImageConverter.handler
+    timeout: 60
+    events:
+      - s3:
+          bucket: ${self:custom.s3PhotosBucket}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: !Sub '${self:custom.heicConverterFolder}/'
+    iamRoleStatementsName: 'heicImageConverterStatements'
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - 's3:GetObject'
+          - 's3:PutObject'
+          - 's3:DeleteObject'
+        Resource:
+          - !Sub 'arn:aws:s3:::${self:custom.s3PhotosBucket}/*'
+
+  # will either move to base processing or image rekognition folder
+  imageSorting:
+    name: ${self:custom.imageSortingLambda}
+    handler: src/handlers/imageSorting.handler
+    timeout: 60
+    events:
+      - s3:
+          bucket: ${self:custom.s3PhotosBucket}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: !Sub '${self:custom.imageSortingFolder}/'
+    iamRoleStatementsName: 'imageSortingStatements'
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - 's3:GetObject'
+          - 's3:PutObject'
+          - 's3:DeleteObject'
+        Resource:
+          - !Sub 'arn:aws:s3:::${self:custom.s3PhotosBucket}/*'
+        # existing: true
+        # forceDeploy: true
+
+  processBasePhoto:
+    name: ${self:custom.baseImageProcessingLambda}
+    handler: src/handlers/processBasePhotoImage.handler
+    timeout: 60
+    events:
+      - s3:
+          bucket: ${self:custom.s3PhotosBucket}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: !Sub '${self:custom.baseImageProcessingFolder}/'
           # existing: true
           # forceDeploy: true
     iamRoleStatementsName: 'processBasePhotoStatements'
@@ -157,50 +244,50 @@ functions:
                 ],
             }
 
-  processUploadedPhoto:
-    name: ${self:custom.photoProcessorLambdaName}
-    handler: src/handlers/processUploadedFamilyPhoto.handler
-    timeout: 60
-    events:
-      - s3:
-          bucket: ${self:custom.s3PhotosBucket}
-          event: s3:ObjectCreated:*
-          rules:
-            - prefix: !Sub '${self:custom.photoUploadFolder}/'
-          # existing: true
-          # forceDeploy: true
-    iamRoleStatementsName: 'processUploadedPhotoStatements'
-    iamRoleStatements:
-      # publish to amazon rekognition
-      - Effect: Allow
-        Action:
-          - rekognition:DetectFaces
-          - rekognition:SearchFacesByImage
-        Resource:
-          - { Fn::GetAtt: [FaceRekognitionCollection, Arn] }
-      # read/delete files from s3
-      - Effect: Allow
-        Action:
-          - 's3:GetObject'
-          - 's3:PutObject'
-          - 's3:DeleteObject'
-        Resource:
-          - !Sub 'arn:aws:s3:::${self:custom.s3PhotosBucket}/*'
-      # appSync Mutations
-      # - Effect: Allow
-      #   Action:
-      #     - appsync:GraphQL
-      #   Resource:
-      #     - {
-      #         Fn::Join:
-      #           [
-      #             '',
-      #             [
-      #               { Ref: GraphQlApi },
-      #               '/types/Mutation/fields/createFaceBaseRecognition',
-      #             ],
-      #           ],
-      #       }
+  # processUploadedPhoto:
+  #   name: ${self:custom.photoProcessorLambdaName}
+  #   handler: src/handlers/processUploadedFamilyPhoto.handler
+  #   timeout: 60
+  #   events:
+  #     - s3:
+  #         bucket: ${self:custom.s3PhotosBucket}
+  #         event: s3:ObjectCreated:*
+  #         rules:
+  #           - prefix: !Sub '${self:custom.photoUploadFolder}/'
+  #         # existing: true
+  #         # forceDeploy: true
+  #   iamRoleStatementsName: 'processUploadedPhotoStatements'
+  #   iamRoleStatements:
+  #     # publish to amazon rekognition
+  #     - Effect: Allow
+  #       Action:
+  #         - rekognition:DetectFaces
+  #         - rekognition:SearchFacesByImage
+  #       Resource:
+  #         - { Fn::GetAtt: [FaceRekognitionCollection, Arn] }
+  #     # read/delete files from s3
+  #     - Effect: Allow
+  #       Action:
+  #         - 's3:GetObject'
+  #         - 's3:PutObject'
+  #         - 's3:DeleteObject'
+  #       Resource:
+  #         - !Sub 'arn:aws:s3:::${self:custom.s3PhotosBucket}/*'
+  #     # appSync Mutations
+  #     # - Effect: Allow
+  #     #   Action:
+  #     #     - appsync:GraphQL
+  #     #   Resource:
+  #     #     - {
+  #     #         Fn::Join:
+  #     #           [
+  #     #             '',
+  #     #             [
+  #     #               { Ref: GraphQlApi },
+  #     #               '/types/Mutation/fields/createFaceBaseRecognition',
+  #     #             ],
+  #     #           ],
+  #     #       }
 
 resources:
   Resources:

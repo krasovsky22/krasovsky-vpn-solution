@@ -4,10 +4,10 @@ import { Handler, S3CreateEvent } from 'aws-lambda';
 import { S3Client } from '@aws-sdk/client-s3';
 import { RekognitionClient } from '@aws-sdk/client-rekognition';
 
-import { getImageBufferFromS3 } from '../utils/s3/getImageBufferFromS3';
+import { getImageBufferFromS3 } from '../utils/s3/getObjectBufferFromS3';
 import { generateJpegFileName } from '../utils/images/generateJpegFileName';
 import { convertHeicToJpeg } from '../utils/images/convertHeicToJpeg';
-import { putImageBufferToS3 } from '../utils/s3/putImageBufferToS3';
+import { putImageBufferToS3 } from '../utils/s3/putObjectBufferToS3';
 import { indexFaceInImage } from '../utils/rekognition/indexFaceInImage';
 import { executeGraphqlFunction } from '../utils/graphql/executeGraphqlFunction';
 

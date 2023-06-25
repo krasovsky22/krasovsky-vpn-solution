@@ -1,24 +1,24 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 type InputType = {
-  s3Client: S3Client;
+  newKey: string;
   buffer: Buffer;
-  key: string;
-  bucket: string;
+  s3Client: S3Client;
+  bucketName: string;
   metadata: Record<string, string>;
 };
 
-export const putImageBufferToS3 = async ({
-  key,
+export const putObjectBufferToS3 = async ({
+  newKey,
   buffer,
-  bucket,
   s3Client,
   metadata,
+  bucketName,
 }: InputType) => {
   const command = new PutObjectCommand({
-    Key: key,
+    Key: newKey,
     Body: buffer,
-    Bucket: bucket,
+    Bucket: bucketName,
     Metadata: metadata,
   });
 

@@ -1,19 +1,26 @@
 import consumers from 'node:stream/consumers';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 
-//docs.aws.amazon.com/AmazonS3/latest/userguide/example_s3_GetObject_section.html
-export const getImageBufferFromS3 = async (
-  s3Client: S3Client,
-  key: string,
-  bucket: string
-): Promise<{
+type InputType = {
+  key: string;
+  s3Client: S3Client;
+  bucketName: string;
+};
+
+type ReturnType = Promise<{
   buffer: Buffer;
   metadata: Record<string, string>;
   error?: string;
-}> => {
+}>;
+//docs.aws.amazon.com/AmazonS3/latest/userguide/example_s3_GetObject_section.html
+export const getObjectBufferFromS3 = async ({
+  key,
+  s3Client,
+  bucketName,
+}: InputType): ReturnType => {
   try {
     const getObjectCommand = new GetObjectCommand({
-      Bucket: bucket,
+      Bucket: bucketName,
       Key: key,
     });
 
