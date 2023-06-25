@@ -1,2 +1,0 @@
-serverless › Invoking "invoke:local" on service "photosService"
-photosService › Running "serverless invoke local -f processBasePhoto -p src/events/file-uploaded-event.json --stage dev --param AwsCognitoUserPoolId=us-west-1_Jqfips2Td"
