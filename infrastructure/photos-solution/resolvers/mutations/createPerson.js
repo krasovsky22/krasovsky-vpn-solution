@@ -11,8 +11,10 @@ export function request(ctx) {
       SK: `PERSON#${id}`,
     }),
     attributeValues: util.dynamodb.toMapValues({
-      ...values,
+      GSI1PK: `PERSON#${id}`,
+      GSI1SK: `PERSON#${id}`,
       _TYPE_: 'PERSON',
+      ...values,
       id,
       createdAt,
     }),

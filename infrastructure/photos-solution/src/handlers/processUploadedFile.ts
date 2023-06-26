@@ -59,6 +59,7 @@ export const handler: Handler = async (event: S3CreateEvent) => {
             });
             break;
           case 'jpeg':
+          case 'jpg':
           case 'png':
             // already image, move to sorting
             await putObjectBufferToS3({

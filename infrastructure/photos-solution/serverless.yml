@@ -88,6 +88,20 @@ appSync:
       field: getFaceBaseRekognitionsForPerson
       functions:
         - getFaceBaseRekognitionsForPerson
+    
+    getPersonById:
+      dataSource: photosTable
+      type: Query
+      field: getPersonById
+      functions:
+        - getPersonById
+        
+    getPersonPhotos:
+      dataSource: photosTable
+      type: Query
+      field: getPersonPhotos
+      functions:
+        - getPersonPhotos
 
     # mutations
     createFaceBaseRecognition:
@@ -104,20 +118,49 @@ appSync:
       functions:
         - createPersonFunction
 
+    addPhotoFunction:
+      dataSource: photosTable
+      type: Mutation
+      field: addPhotoFunction
+      functions:
+        - addPhotoFunction
+
+    addPhotoPersonConnector:
+      dataSource: photosTable
+      type: Mutation
+      field: addPhotoPersonConnector
+      functions:
+        - addPhotoPersonConnectorFunction
+
   pipelineFunctions:
     getFaceBaseRekognitionsForPerson:
       dataSource: photosTable
-      code: resolvers/getFaceBaseRekognitionsForPerson.js
+      code: resolvers/queries/getFaceBaseRekognitionsForPerson.js
+
+    getPersonById:
+      dataSource: photosTable
+      code: resolvers/queries/getPersonById.js
+
+    getPersonPhotos:
+      dataSource: photosTable
+      code: resolvers/queries/getPersonPhotos.js
 
     # MUTATIONS
-
     createPersonFunction:
       dataSource: photosTable
-      code: resolvers/createPerson.js
+      code: resolvers/mutations/createPerson.js
 
     createFaceBaseRecognition:
       dataSource: photosTable
-      code: resolvers/createFaceBaseRekognition.js
+      code: resolvers/mutations/createFaceBaseRekognition.js
+
+    addPhotoFunction:
+      dataSource: photosTable
+      code: resolvers/mutations/addPhotoFunction.js
+
+    addPhotoPersonConnectorFunction:
+      dataSource: photosTable
+      code: resolvers/mutations/addPhotoPersonConnectorFunction.js
 
   dataSources:
     photosTable:
