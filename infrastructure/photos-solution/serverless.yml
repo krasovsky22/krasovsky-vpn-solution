@@ -121,7 +121,7 @@ appSync:
     addPhotoFunction:
       dataSource: photosTable
       type: Mutation
-      field: addPhotoFunction
+      field: addPhoto
       functions:
         - addPhotoFunction
 

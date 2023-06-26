@@ -1,7 +1,9 @@
 type Query {
-  getPersonById(personId: ID!): Person
-  getPersonPhotos(personId: ID!): Person
+  getPersonById(personId: ID!): Person @aws_cognito_user_pools
+  getPersonPhotos(personId: ID!): Person @aws_cognito_user_pools
   getFaceBaseRekognitionsForPerson(personId: ID!): Person
+    @aws_iam
+    @aws_cognito_user_pools
 }
 
 # Photos
@@ -14,14 +16,14 @@ type Person @aws_iam @aws_cognito_user_pools {
   photosWithPerson: [PhotoPersonConnector]
 }
 
-type Photo @aws_iam {
+type Photo @aws_iam @aws_cognito_user_pools {
   id: ID!
   s3Path: String!
   createdAt: AWSDateTime!
   recognisedPeople: [PhotoPersonConnector]
 }
 
-type PhotoPersonConnector @aws_iam {
+type PhotoPersonConnector @aws_iam @aws_cognito_user_pools {
   personId: String!
   photoID: String!
   dimensions: AWSJSON!
@@ -46,7 +48,7 @@ type Mutation {
   addPhoto(input: PhotoInput!): Photo! @aws_iam
   addPhotoPersonConnector(
     input: PhotoPersonConnectorInput!
-  ): PhotoPersonConnector
+  ): PhotoPersonConnector @aws_iam
 }
 
 # inputs
@@ -63,7 +65,7 @@ input PersonInput {
 
 input PhotoPersonConnectorInput {
   personId: String!
-  photoID: String!
+  photoId: String!
   dimensions: AWSJSON!
 }
 
