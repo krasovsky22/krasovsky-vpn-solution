@@ -19,8 +19,8 @@ provider:
     IMAGE_BASE_PROCESSING_FOLDER: ${self:custom.imageBaseProcessingFolder}
     
     PHOTOS_S3_BUCKET: ${self:custom.s3PhotosBucket}
-    # PROCESSED_FOLDER: ${self:custom.processedPhotosFolder}
     BASE_PROCESSED_FOLDER: ${self:custom.baseProcessedFolder}
+    PHOTO_PROCESSED_FOLDER: ${self:custom.processedPhotosFolder}
     REKOGNITION_COLLECTION_ID: ${self:custom.rekognitionCollectionId}
 
 custom:
@@ -62,8 +62,8 @@ custom:
   baseImageProcessingFolder: 'baseImageProcessing'
   baseProcessedFolder: 'baseProcessed'
 
-  # photoUploadFolder: 'photoUploads'
-  # processedPhotosFolder: 'photoUploadsProcessed'
+  photoProcessLambda: ${env:PROJECT_NAME}-photoProcess-${self:provider.stage}
+  processedPhotosFolder: 'photoProcessedArchive'
 
   ## rekognition
   rekognitionCollectionId: '${env:PROJECT_NAME}-family-rekognition-collection-${self:provider.stage}'
@@ -287,50 +287,60 @@ functions:
                 ],
             }
 
-  # processUploadedPhoto:
-  #   name: ${self:custom.photoProcessorLambdaName}
-  #   handler: src/handlers/processUploadedFamilyPhoto.handler
-  #   timeout: 60
-  #   events:
-  #     - s3:
-  #         bucket: ${self:custom.s3PhotosBucket}
-  #         event: s3:ObjectCreated:*
-  #         rules:
-  #           - prefix: !Sub '${self:custom.photoUploadFolder}/'
-  #         # existing: true
-  #         # forceDeploy: true
-  #   iamRoleStatementsName: 'processUploadedPhotoStatements'
-  #   iamRoleStatements:
-  #     # publish to amazon rekognition
-  #     - Effect: Allow
-  #       Action:
-  #         - rekognition:DetectFaces
-  #         - rekognition:SearchFacesByImage
-  #       Resource:
-  #         - { Fn::GetAtt: [FaceRekognitionCollection, Arn] }
-  #     # read/delete files from s3
-  #     - Effect: Allow
-  #       Action:
-  #         - 's3:GetObject'
-  #         - 's3:PutObject'
-  #         - 's3:DeleteObject'
-  #       Resource:
-  #         - !Sub 'arn:aws:s3:::${self:custom.s3PhotosBucket}/*'
-  #     # appSync Mutations
-  #     # - Effect: Allow
-  #     #   Action:
-  #     #     - appsync:GraphQL
-  #     #   Resource:
-  #     #     - {
-  #     #         Fn::Join:
-  #     #           [
-  #     #             '',
-  #     #             [
-  #     #               { Ref: GraphQlApi },
-  #     #               '/types/Mutation/fields/createFaceBaseRecognition',
-  #     #             ],
-  #     #           ],
-  #     #       }
+  processPhoto:
+    name: ${self:custom.photoProcessLambda}
+    handler: src/handlers/processPhoto.handler
+    timeout: 60
+    events:
+      - s3:
+          bucket: ${self:custom.s3PhotosBucket}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: !Sub '${self:custom.imageProcessingFolder}/'
+          # existing: true
+          # forceDeploy: true
+    iamRoleStatementsName: 'processPhotoStatements'
+    iamRoleStatements:
+      # publish to amazon rekognition
+      - Effect: Allow
+        Action:
+          - rekognition:DetectFaces
+          - rekognition:SearchFacesByImage
+        Resource:
+          - { Fn::GetAtt: [FaceRekognitionCollection, Arn] }
+      # read/delete files from s3
+      - Effect: Allow
+        Action:
+          - 's3:GetObject'
+          - 's3:PutObject'
+          - 's3:DeleteObject'
+        Resource:
+          - !Sub 'arn:aws:s3:::${self:custom.s3PhotosBucket}/*'
+      # appSync Mutations
+      - Effect: Allow
+        Action:
+          - appsync:GraphQL
+        Resource:
+          - {
+              Fn::Join:
+                [
+                  '',
+                  [
+                    { Ref: GraphQlApi },
+                    '/types/Mutation/fields/addPhoto',
+                  ],
+                ],
+            }
+          - {
+              Fn::Join:
+                [
+                  '',
+                  [
+                    { Ref: GraphQlApi },
+                    '/types/Mutation/fields/addPhotoPersonConnector',
+                  ],
+                ],
+            }
 
 resources:
   Resources:

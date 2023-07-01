@@ -25,7 +25,7 @@ type Photo @aws_iam @aws_cognito_user_pools {
 
 type PhotoPersonConnector @aws_iam @aws_cognito_user_pools {
   personId: String!
-  photoID: String!
+  photoId: String!
   dimensions: AWSJSON!
 
   person: Person
@@ -70,7 +70,6 @@ input PhotoPersonConnectorInput {
 }
 
 input PhotoInput {
-  id: ID!
   s3Path: String!
 }
 
