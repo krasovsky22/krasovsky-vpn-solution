@@ -23,6 +23,19 @@ provider:
     PHOTO_PROCESSED_FOLDER: ${self:custom.processedPhotosFolder}
     REKOGNITION_COLLECTION_ID: ${self:custom.rekognitionCollectionId}
 
+layers:
+  sharp:
+    name: sharp
+    compatibleRuntimes:
+      - nodejs14.x
+      - nodejs16.x
+      - nodejs18.x
+    compatibleArchitectures:
+      - x86_64
+      - arm64
+    package:
+      artifact: layers/sharp/sharp-layer.zip
+
 custom:
   dotenv:
     required:
@@ -35,9 +48,6 @@ custom:
     minify: true
     external:
       - sharp
-    packagerOptions:
-      scripts:
-        - npm install --arch=x64 --platform=linux sharp
 
   appSyncName: ${env:PROJECT_NAME}-familyPhotos-${self:provider.stage}
 
@@ -194,19 +204,6 @@ plugins:
   - serverless-dynamodb-local
   - serverless-iam-roles-per-function
 
-layers:
-  sharpLayer:
-    name: sharp
-    compatibleRuntimes:
-      - nodejs14.x
-      - nodejs16.x
-      - nodejs18.x
-    compatibleArchitectures:
-      - x86_64
-      - arm64
-    package:
-      artifact: layers/sharp/sharp-layer.zip
-
 functions:
   # will check the format of a file , move it into heic processor/ jpeg processor or unsupported folders
   processUploadedFile:
@@ -322,7 +319,7 @@ functions:
     handler: src/handlers/processPhoto.handler
     timeout: 60
     layers:
-      - !Ref sharpLayer
+      - !Ref SharpLambdaLayer
     events:
       - s3:
           bucket: ${self:custom.s3PhotosBucket}
@@ -370,6 +367,16 @@ functions:
                   [
                     { Ref: GraphQlApi },
                     '/types/Mutation/fields/addPhotoPersonConnector',
+                  ],
+                ],
+            }
+          - {
+              Fn::Join:
+                [
+                  '',
+                  [
+                    { Ref: GraphQlApi },
+                    '/types/Query/fields/getFaceBaseRekognitionById',
                   ],
                 ],
             }
