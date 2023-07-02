@@ -33,6 +33,8 @@ custom:
   esbuild:
     bundle: true
     minify: true
+    external:
+      - sharp
   appSyncName: ${env:PROJECT_NAME}-familyPhotos-${self:provider.stage}
 
   photosGroupIamRoleName: ${env:PROJECT_NAME}-photosCustomerGroupRole-${self:provider.stage}
@@ -88,6 +90,13 @@ appSync:
       field: getFaceBaseRekognitionsForPerson
       functions:
         - getFaceBaseRekognitionsForPerson
+
+    getFaceBaseRekognitionById:
+      dataSource: photosTable
+      type: Query
+      field: getFaceBaseRekognitionById
+      functions:
+        - getFaceBaseRekognitionById
     
     getPersonById:
       dataSource: photosTable
@@ -136,6 +145,10 @@ appSync:
     getFaceBaseRekognitionsForPerson:
       dataSource: photosTable
       code: resolvers/queries/getFaceBaseRekognitionsForPerson.js
+      
+    getFaceBaseRekognitionById:
+      dataSource: photosTable
+      code: resolvers/queries/getFaceBaseRekognitionById.js
 
     getPersonById:
       dataSource: photosTable

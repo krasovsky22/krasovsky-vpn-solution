@@ -5,7 +5,7 @@ type InputType = {
   buffer: Buffer;
   s3Client: S3Client;
   bucketName: string;
-  metadata: Record<string, string>;
+  metadata?: Record<string, string>;
 };
 
 export const putObjectBufferToS3 = async ({

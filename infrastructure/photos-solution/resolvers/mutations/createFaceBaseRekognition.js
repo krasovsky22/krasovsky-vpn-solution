@@ -12,6 +12,8 @@ export function request(ctx) {
     }),
     attributeValues: util.dynamodb.toMapValues({
       ...values,
+      GSI1PK: `BASE_FACE_REKOGNITION#${rekognitionId}`,
+      GSI1SK: `PERSON#${personId}`,
       _TYPE_: 'BASE_FACE_REKOGNITION',
       createdAt: util.time.nowISO8601(),
     }),
