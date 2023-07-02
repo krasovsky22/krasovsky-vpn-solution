@@ -1,7 +1,9 @@
 type Query {
   getPersonById(personId: ID!): Person @aws_cognito_user_pools
   getPersonPhotos(personId: ID!): Person @aws_cognito_user_pools
-  getFaceBaseRekognitionById(id: ID!)
+  getFaceBaseRekognitionById(id: ID!): BaseFaceRekognition
+    @aws_iam
+    @aws_cognito_user_pools
   getFaceBaseRekognitionsForPerson(personId: ID!): Person
     @aws_iam
     @aws_cognito_user_pools

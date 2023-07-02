@@ -8,7 +8,7 @@ export function request(ctx) {
     query: {
       expression: 'GSI1PK = :pk',
       expressionValues: util.dynamodb.toMapValues({
-        ':pk': `BASE_FACE_REKOGNITION#${personId}`,
+        ':pk': `BASE_FACE_REKOGNITION#${id}`,
       }),
     },
   };

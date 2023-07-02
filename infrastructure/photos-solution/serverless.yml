@@ -97,14 +97,14 @@ appSync:
       field: getFaceBaseRekognitionById
       functions:
         - getFaceBaseRekognitionById
-    
+
     getPersonById:
       dataSource: photosTable
       type: Query
       field: getPersonById
       functions:
         - getPersonById
-        
+
     getPersonPhotos:
       dataSource: photosTable
       type: Query
