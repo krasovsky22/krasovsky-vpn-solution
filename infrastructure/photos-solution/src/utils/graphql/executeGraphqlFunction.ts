@@ -15,7 +15,11 @@ export const executeGraphqlFunction = async ({
 }: InputType) => {
   try {
     console.log(
-      `Executing graphql query createFaceBaseRecognition with variables - ${variables}`
+      `Executing graphql query createFaceBaseRecognition with variables - ${JSON.stringify(
+        variables,
+        null,
+        2
+      )}`
     );
     const client = new GraphQLClient(graphqlEndpoint, {
       fetch: createSignedFetcher({ service: 'appsync', region }),
