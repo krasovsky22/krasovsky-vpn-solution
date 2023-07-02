@@ -35,6 +35,10 @@ custom:
     minify: true
     external:
       - sharp
+    packagerOptions:
+      scripts:
+        - npm install --arch=x64 --platform=linux sharp
+
   appSyncName: ${env:PROJECT_NAME}-familyPhotos-${self:provider.stage}
 
   photosGroupIamRoleName: ${env:PROJECT_NAME}-photosCustomerGroupRole-${self:provider.stage}
@@ -190,6 +194,19 @@ plugins:
   - serverless-dynamodb-local
   - serverless-iam-roles-per-function
 
+layers:
+  sharpLayer:
+    name: sharp
+    compatibleRuntimes:
+      - nodejs14.x
+      - nodejs16.x
+      - nodejs18.x
+    compatibleArchitectures:
+      - x86_64
+      - arm64
+    package:
+      artifact: layers/sharp/sharp-layer.zip
+
 functions:
   # will check the format of a file , move it into heic processor/ jpeg processor or unsupported folders
   processUploadedFile:
@@ -304,6 +321,8 @@ functions:
     name: ${self:custom.photoProcessLambda}
     handler: src/handlers/processPhoto.handler
     timeout: 60
+    layers:
+      - !Ref sharpLayer
     events:
       - s3:
           bucket: ${self:custom.s3PhotosBucket}
@@ -320,7 +339,7 @@ functions:
           - rekognition:DetectFaces
           - rekognition:SearchFacesByImage
         Resource:
-          - { Fn::GetAtt: [FaceRekognitionCollection, Arn] }
+          - "*"
       # read/delete files from s3
       - Effect: Allow
         Action:
