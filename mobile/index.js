@@ -10,6 +10,11 @@ const awsConfig = {
     mandatorySignIn: expoAwsVariables?.cognito_mandatorySignIn ?? true,
     userPoolWebClientId: expoAwsVariables?.cognito_userPoolWebClientId ?? '',
   },
+  Storage: {
+    AWSS3: {
+      bucket: expoAwsVariables?.s3_bucket ?? '',
+    },
+  },
   aws_appsync_region: expoAwsVariables?.appsync_region ?? '',
   aws_appsync_graphqlEndpoint: expoAwsVariables?.appsync_graphqlEndpoint ?? '',
   aws_appsync_authenticationType:

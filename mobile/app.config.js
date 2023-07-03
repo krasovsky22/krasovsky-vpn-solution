@@ -5,6 +5,7 @@ dotenv.config();
 
 module.exports = ({ config }) => {
   Object.assign(config.extra.aws, {
+    s3_bucket: process.env.AWS_S3_BUCKET,
     cognito_region: process.env.AWS_COGNITO_REGION,
     cognito_userPoolId: process.env.AWS_COGNITO_USER_POOL_ID,
     cognito_userPoolWebClientId:

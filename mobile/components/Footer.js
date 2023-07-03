@@ -42,8 +42,8 @@ const Footer = () => {
         }}
       />
       <Button
-        onPress={() => handleRedirect('/vpn')}
-        title="VPN"
+        onPress={() => handleRedirect('/photos')}
+        title="PHOTOS"
         icon={{
           type: 'MaterialIcons',
           name: 'vpn-lock',

@@ -81,6 +81,8 @@ custom:
   photoProcessLambda: ${env:PROJECT_NAME}-photoProcess-${self:provider.stage}
   processedPhotosFolder: 'photoProcessedArchive'
 
+  generatePresignedUrlLambda: ${env:PROJECT_NAME}-generateS3Url-${self:provider.stage}
+
   ## rekognition
   rekognitionCollectionId: '${env:PROJECT_NAME}-family-rekognition-collection-${self:provider.stage}'
 
@@ -125,6 +127,14 @@ appSync:
       field: getPersonPhotos
       functions:
         - getPersonPhotos
+    
+    getPhotoById:
+      dataSource: photosTable
+      type: Query
+      field: getPhotoById
+      functions:
+        - getPhotoById
+        - getPresignedUrl
 
     # mutations
     createFaceBaseRecognition:
@@ -159,7 +169,7 @@ appSync:
     getFaceBaseRekognitionsForPerson:
       dataSource: photosTable
       code: resolvers/queries/getFaceBaseRekognitionsForPerson.js
-      
+
     getFaceBaseRekognitionById:
       dataSource: photosTable
       code: resolvers/queries/getFaceBaseRekognitionById.js
@@ -167,6 +177,15 @@ appSync:
     getPersonById:
       dataSource: photosTable
       code: resolvers/queries/getPersonById.js
+
+    getPhotoById:
+      dataSource: photosTable
+      code: resolvers/queries/getPhotoById.js
+
+    getPresignedUrl:
+      dataSource: s3PresignedUrl
+      code: resolvers/lambda/getPresignedUrl.js
+
 
     getPersonPhotos:
       dataSource: photosTable
@@ -194,6 +213,13 @@ appSync:
       type: AMAZON_DYNAMODB
       config:
         tableName: !Ref photosTable
+
+    s3PresignedUrl:
+      type: 'AWS_LAMBDA'
+      DependsOn: HelloLambdaFunction
+      config:
+        functionName: generatePresignedUrl
+            # Fn::GetAtt: [generatePresignedUrlLambdaFunction, name]
 
 plugins:
   - serverless-esbuild
@@ -380,6 +406,19 @@ functions:
                   ],
                 ],
             }
+
+  generatePresignedUrl:
+    name: ${self:custom.generatePresignedUrlLambda}
+    handler: src/handlers/generatePresignedUrl.handler
+    iamRoleStatementsName: 'generatePresignedUrlStatements'
+    iamRoleStatements:
+      # read/delete files from s3
+      - Effect: Allow
+        Action:
+          - 's3:GetObject'
+          - 's3:GetObjectVersion'
+        Resource:
+          - !Sub 'arn:aws:s3:::${self:custom.s3PhotosBucket}/*'
 
 resources:
   Resources:

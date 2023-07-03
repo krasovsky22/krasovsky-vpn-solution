@@ -1,0 +1,87 @@
+{
+  "arguments": {
+    "id": "c32dc7dd-9e50-4fae-8216-ab33865c9f8d"
+  },
+  "identity": {
+    "claims": {
+      "sub": "99b9892e-7041-70d4-381b-5e612135967c",
+      "iss": "https://cognito-idp.us-west-1.amazonaws.com/us-west-1_Jqfips2Td",
+      "cognito:username": "99b9892e-7041-70d4-381b-5e612135967c",
+      "origin_jti": "5c54d7fe-6c82-4707-b6a7-c3de114a5943",
+      "aud": "67abn01uo13jm35u62d6revgsa",
+      "event_id": "44b79eb4-c022-40cd-8cac-12911cd33854",
+      "token_use": "id",
+      "auth_time": 1687602785,
+      "custom:photo_person_id": "2d3e1149-2390-4c39-86ec-2bd4465f21c5",
+      "exp": 1688383800,
+      "iat": 1688380200,
+      "jti": "421bf1d0-c2bf-4b13-ad7c-7ddcb9ffc100",
+      "email": "vlad_krasovsky@yahoo.com"
+    },
+    "defaultAuthStrategy": "ALLOW",
+    "groups": null,
+    "issuer": "https://cognito-idp.us-west-1.amazonaws.com/us-west-1_Jqfips2Td",
+    "sourceIp": ["112.206.97.175"],
+    "sub": "99b9892e-7041-70d4-381b-5e612135967c",
+    "username": "99b9892e-7041-70d4-381b-5e612135967c"
+  },
+  "source": null,
+  "result": null,
+  "request": {
+    "headers": {
+      "x-forwarded-for": "112.206.97.175, 70.132.3.166",
+      "sec-ch-ua-mobile": "?0",
+      "cloudfront-viewer-country": "PH",
+      "cloudfront-is-tablet-viewer": "false",
+      "x-amzn-requestid": "4aeb55ea-7381-4811-9b38-0211d40872ca",
+      "via": "2.0 47f0d09d9d5d7d899c2e467cfbfb08e0.cloudfront.net (CloudFront)",
+      "cloudfront-forwarded-proto": "https",
+      "origin": "https://us-west-1.console.aws.amazon.com",
+      "content-length": "179",
+      "x-forwarded-proto": "https",
+      "accept-language": "en-US,en;q=0.9",
+      "host": "eqlqnr7hnnatbmlaeduzirjwrq.appsync-api.us-west-1.amazonaws.com",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+      "cloudfront-is-mobile-viewer": "false",
+      "accept": "application/json, text/plain, */*",
+      "cloudfront-viewer-asn": "9299",
+      "cloudfront-is-smarttv-viewer": "false",
+      "x-amzn-appsync-is-vpce-request": "false",
+      "accept-encoding": "gzip, deflate, br",
+      "referer": "https://us-west-1.console.aws.amazon.com/",
+      "content-type": "application/json",
+      "sec-fetch-mode": "cors",
+      "x-amzn-trace-id": "Root=1-64a2a49e-3c3459961bf709af7971916b",
+      "x-amz-cf-id": "9bzEpqHM5tgU1T9_FJJEDXaa-1naoZIAShoTGEnJv_BGE5Fie3VRtg==",
+      "authorization": "eyJraWQiOiJ0XC9wRTFQZmx3Z1BKRDBjc2J0RE05VUVYNHhzbEdhZVVPRTJiODdVeEhIWT0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiI5OWI5ODkyZS03MDQxLTcwZDQtMzgxYi01ZTYxMjEzNTk2N2MiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtd2VzdC0xLmFtYXpvbmF3cy5jb21cL3VzLXdlc3QtMV9KcWZpcHMyVGQiLCJjb2duaXRvOnVzZXJuYW1lIjoiOTliOTg5MmUtNzA0MS03MGQ0LTM4MWItNWU2MTIxMzU5NjdjIiwib3JpZ2luX2p0aSI6IjVjNTRkN2ZlLTZjODItNDcwNy1iNmE3LWMzZGUxMTRhNTk0MyIsImF1ZCI6IjY3YWJuMDF1bzEzam0zNXU2MmQ2cmV2Z3NhIiwiZXZlbnRfaWQiOiI0NGI3OWViNC1jMDIyLTQwY2QtOGNhYy0xMjkxMWNkMzM4NTQiLCJ0b2tlbl91c2UiOiJpZCIsImF1dGhfdGltZSI6MTY4NzYwMjc4NSwiY3VzdG9tOnBob3RvX3BlcnNvbl9pZCI6IjJkM2UxMTQ5LTIzOTAtNGMzOS04NmVjLTJiZDQ0NjVmMjFjNSIsImV4cCI6MTY4ODM4MzgwMCwiaWF0IjoxNjg4MzgwMjAwLCJqdGkiOiI0MjFiZjFkMC1jMmJmLTRiMTMtYWQ3Yy03ZGRjYjlmZmMxMDAiLCJlbWFpbCI6InZsYWRfa3Jhc292c2t5QHlhaG9vLmNvbSJ9.hg2zswTAUKBf8GSSs5RbAaeUPf_u_GPF1OmiLATeuEW3vLAlrxNsr1f-Iz8-Pyvt9QhH-dx4WbfowHq11SrTaqr6FPS803jJRk8W2B2tj5_DDrUCXgedvI_2OOUCXrBPx5gOEfYibmR8jNO1-UdXGSbCYJyuBy7N1RQbMs5MU1fSnB7zDA3E7ebVVhxE5m-RCMqim84wJKzcpENqt5tXgcm1wnPKjaa9xndLRfJMIRMg_WqxxwojFEW_Q6LIkDMM1EkXSvc8kKGHI_zWHwb_LHxENIOIhZD_s_1leg-ZCcjEpuTUFlEcLoOpZ16LWbp5XelazCvYP6ZO3aqJtY_Q_g",
+      "sec-fetch-dest": "empty",
+      "x-amz-user-agent": "AWS-Console-AppSync/",
+      "sec-ch-ua-platform": "\"macOS\"",
+      "cloudfront-is-desktop-viewer": "true",
+      "sec-fetch-site": "cross-site",
+      "sec-ch-ua": "\"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"114\", \"Google Chrome\";v=\"114\"",
+      "x-forwarded-port": "443"
+    },
+    "domainName": null
+  },
+  "info": {
+    "fieldName": "getPhotoById",
+    "parentTypeName": "Query",
+    "variables": {}
+  },
+  "error": null,
+  "prev": {
+    "result": {
+      "createdAt": "2023-07-02T11:54:07.525Z",
+      "_TYPE_": "PHOTO",
+      "GSI1PK": "PHOTO#c32dc7dd-9e50-4fae-8216-ab33865c9f8d",
+      "s3Path": "photoProcessedArchive/IMG_3073.JPEG",
+      "GSI1SK": "PHOTO#c32dc7dd-9e50-4fae-8216-ab33865c9f8d",
+      "SK": "PHOTO#c32dc7dd-9e50-4fae-8216-ab33865c9f8d",
+      "id": "c32dc7dd-9e50-4fae-8216-ab33865c9f8d",
+      "PK": "PHOTO#c32dc7dd-9e50-4fae-8216-ab33865c9f8d"
+    }
+  },
+  "stash": {},
+  "outErrors": []
+}

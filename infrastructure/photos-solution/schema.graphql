@@ -1,5 +1,6 @@
 type Query {
   getPersonById(personId: ID!): Person @aws_cognito_user_pools
+  getPhotoById(id: ID!): Photo @aws_iam @aws_cognito_user_pools
   getPersonPhotos(personId: ID!): Person @aws_cognito_user_pools
   getFaceBaseRekognitionById(id: ID!): BaseFaceRekognition
     @aws_iam
@@ -22,6 +23,7 @@ type Person @aws_iam @aws_cognito_user_pools {
 type Photo @aws_iam @aws_cognito_user_pools {
   id: ID!
   s3Path: String!
+  s3PresignedUrl: String
   createdAt: AWSDateTime!
   recognisedPeople: [PhotoPersonConnector]
 }

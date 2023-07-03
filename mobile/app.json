@@ -29,6 +29,7 @@
     },
     "extra": {
       "aws": {
+        "s3_bucket": "",
         "cognito_region": "",
         "cognito_userPoolId": "",
         "cognito_userPoolWebClientId": "",
