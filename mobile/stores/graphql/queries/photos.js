@@ -20,6 +20,7 @@ query getPhotoByIdQuery($id: ID!) {
     id
     s3Path
     createdAt
+    s3PresignedUrl
   }
 }
 `;
