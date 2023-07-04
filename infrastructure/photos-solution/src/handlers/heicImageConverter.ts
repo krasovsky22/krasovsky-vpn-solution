@@ -50,7 +50,10 @@ export const handler: Handler = async (event: S3CreateEvent) => {
         await putObjectBufferToS3({
           bucketName,
           s3Client,
-          metadata,
+          metadata: {
+            ...metadata,
+            ContentType: `image/jpeg`,
+          },
           buffer: jpegBuffer,
           newKey: `${IMAGE_SORTING_FOLDER}/${fileNamewithJPEGExtention}`,
         });

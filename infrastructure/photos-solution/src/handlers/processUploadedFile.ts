@@ -54,7 +54,10 @@ export const handler: Handler = async (event: S3CreateEvent) => {
               buffer,
               bucketName,
               s3Client,
-              metadata,
+              metadata: {
+                ...metadata,
+                ContentType: `image/${fileExtention.toLocaleLowerCase()}`,
+              },
               newKey: `${HEIC_CONVERTER_FOLDER}/${fileNameWithoutPath}`,
             });
             break;
@@ -66,7 +69,10 @@ export const handler: Handler = async (event: S3CreateEvent) => {
               buffer,
               bucketName,
               s3Client,
-              metadata,
+              metadata: {
+                ...metadata,
+                ContentType: `image/${fileExtention.toLocaleLowerCase()}`,
+              },
               newKey: `${IMAGE_SORTING_FOLDER}/${fileNameWithoutPath}`,
             });
             break;
