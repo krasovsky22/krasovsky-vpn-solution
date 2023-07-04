@@ -12,9 +12,6 @@ import usePhotos from '@hooks/usePhotos';
 import useCurrentUser from '@hooks/useCurrentUser';
 import { fetchPersonPhotos } from '@actions/photos';
 
-const blurhash =
-  '|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[';
-
 export default function PhotosPage() {
   const photos = usePhotos();
   const dispatch = useDispatch();
@@ -26,7 +23,6 @@ export default function PhotosPage() {
     dispatch(fetchCurrentUserPhotosThunk);
   }, [photoPersonId]);
 
-  console.log('asdasd', photos);
   return (
     <SafeAreaView>
       <Stack.Screen options={{ title: 'Person Photos' }} />
@@ -34,13 +30,13 @@ export default function PhotosPage() {
         data={photos}
         style={styles.list}
         numColumns={2}
-        keyExtractor={(e) => e}
         renderItem={({ item }) => (
           <Image
             key={item.id}
             alt="photo"
             source={{ uri: item.s3PresignedUrl }}
             containerStyle={styles.item}
+            placeholderStyle={styles.loadingBox}
             PlaceholderContent={<ActivityIndicator />}
           />
         )}
@@ -50,6 +46,15 @@ export default function PhotosPage() {
 }
 
 const styles = StyleSheet.create({
+  loadingBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contentContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   list: {
     width: '100%',
     backgroundColor: '#000',

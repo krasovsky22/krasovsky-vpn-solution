@@ -1,6 +1,6 @@
 import { startLoading, completeLoading } from '@reducers/loadingReducer';
 import { getPersonPhotos, getPhotoById } from '@api/photos';
-import { addPhoto } from '@reducers/photosReducer';
+import { setPhotos } from '@reducers/photosReducer';
 
 export const fetchPersonPhotos = (personId) => {
   return async (dispatch) => {
@@ -14,10 +14,7 @@ export const fetchPersonPhotos = (personId) => {
       })
     );
 
-    photos.forEach((photo) => {
-      const addPhotoThunk = addPhoto(photo);
-      return dispatch(addPhotoThunk);
-    });
+    dispatch(setPhotos(photos));
 
     dispatch(completeLoading());
   };

@@ -4,6 +4,10 @@ const photoSlice = createSlice({
   name: 'photos',
   initialState: [],
   reducers: {
+    setPhotos(state, action) {
+      const photos = action.payload;
+      return [...photos];
+    },
     addPhoto(state, action) {
       const photo = action.payload;
 
@@ -12,5 +16,5 @@ const photoSlice = createSlice({
   },
 });
 
-export const { addPhoto } = photoSlice.actions;
+export const { setPhotos, addPhoto } = photoSlice.actions;
 export default photoSlice.reducer;

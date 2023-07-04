@@ -91,6 +91,12 @@ custom:
 
 appSync:
   name: ${self:custom.appSyncName}
+
+  caching:
+    behavior: FULL_REQUEST_CACHING # or PER_RESOLVER_CACHING. Required
+    ttl: 3600
+    type: 'SMALL'
+
   authentication:
     type: AMAZON_COGNITO_USER_POOLS
     config:
@@ -127,7 +133,7 @@ appSync:
       field: getPersonPhotos
       functions:
         - getPersonPhotos
-    
+
     getPhotoById:
       dataSource: photosTable
       type: Query
