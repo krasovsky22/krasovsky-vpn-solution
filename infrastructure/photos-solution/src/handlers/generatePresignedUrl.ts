@@ -9,8 +9,15 @@ const s3Client = new S3Client({ region: AWS_REGION });
 export const handler: Handler = async (
   event: AppSyncResolverEvent<any, any>
 ) => {
-  console.log('json stringify', JSON.stringify(event, null, 2));
-  const { s3Path } = event.prev.result;
+  const s3Path = event?.prev?.result?.s3Path;
+
+  if (!s3Path) {
+    // earyly return
+    return {
+      statusCode: 400,
+      body: 's3Path is required.',
+    };
+  }
 
   const getObjectParams = {
     Bucket: PHOTOS_S3_BUCKET,
